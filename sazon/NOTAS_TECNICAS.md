@@ -23,6 +23,9 @@ Planificador de menú semanal (desayuno, comida, merienda opcional y cena) con l
 
 - **Perfil**: nombre y foto (`S.name`, `S.photo`). La foto se recorta a cuadrado y se reduce a 320 px en un canvas antes de guardarla como data URL en `localStorage`, para no agotar la cuota. Racha = días consecutivos con algo cocinado en modo cocina (`S.cookDays`, por fecha local).
 
+- **Almuerzo del cole** (comida `k`): no tiene interruptor; se activa de lunes a viernes cuando hay peques en `S.kids` (nombre y edad). `ALL` es la lista de comidas incluyendo `k`; `SLOTS` sigue siendo solo las que se activan a mano. Las cantidades de las recetas `k` son para 10–12 años y se escalan con `ageF` (0,6 de 3–5; 0,8 de 6–9; 1 de 10–12; 1,2 desde 13). `kidOk` descarta recetas con `minAge` mayor que el peque más pequeño (frutos secos enteros: 6 años) y, con `S.nutfree` (activo por defecto), cualquier receta con frutos secos. Las raciones y consejos por edad son orientativos, no pauta pediátrica.
+- **Quitar una comida**: `S.skip["<día><comida>"]`. `generate` y `syncPlan` no rellenan esas casillas, así que no cuentan en presupuesto ni lista. Se conserva al regenerar la semana; solo se borra al recuperarla o al reiniciar.
+
 ## Bugs y lecciones
 - `.bud .row` heredaba el borde inferior de las filas de la lista (`.row`): clases genéricas compartidas en un CSS de un solo archivo. Se anula en el tema v2.
 - El estado inicial compartía por referencia los objetos de `DEF` (`Object.assign` superficial), así que "borrar mis datos" no restauraba los valores por defecto. Arreglo: `fresh()` clona `DEF`.
