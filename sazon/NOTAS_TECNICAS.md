@@ -26,7 +26,11 @@ Planificador de menú semanal (desayuno, comida, merienda opcional y cena) con l
 - **Almuerzo del cole** (comida `k`): no tiene interruptor; se activa de lunes a viernes cuando hay peques en `S.kids` (nombre y edad). `ALL` es la lista de comidas incluyendo `k`; `SLOTS` sigue siendo solo las que se activan a mano. Las cantidades de las recetas `k` son para 10–12 años y se escalan con `ageF` (0,6 de 3–5; 0,8 de 6–9; 1 de 10–12; 1,2 desde 13). `kidOk` descarta recetas con `minAge` mayor que el peque más pequeño (frutos secos enteros: 6 años) y, con `S.nutfree` (activo por defecto), cualquier receta con frutos secos. Las raciones y consejos por edad son orientativos, no pauta pediátrica.
 - **Quitar una comida**: `S.skip["<día><comida>"]`. `generate` y `syncPlan` no rellenan esas casillas, así que no cuentan en presupuesto ni lista. Se conserva al regenerar la semana; solo se borra al recuperarla o al reiniciar.
 
+- **Hacer tuyo un plato**: «Hacerla mía» abre el formulario de recetas propias precargado con una receta del catálogo (`U.form.src`) y la guarda como copia; la original no se modifica. Si se abrió desde una casilla del menú (`U.form.ctx`), esa casilla pasa a usar la copia. La copia hereda la foto original (`img` = ruta `img/<id>.jpg`) hasta que el usuario suba la suya, y conserva los temporizadores de los pasos cuyo texto no cambia. Los macros no se copian porque dejan de ser válidos al cambiar ingredientes.
+- **Elegir plato**: además de «Cambiar» (al azar), «Elegir otro plato» lista todas las recetas válidas para esa casilla, con las propias primero.
+
 ## Bugs y lecciones
+- Las recetas propias no tenían `minAge`, y `undefined <= edad` es falso, así que nunca salían como almuerzo del cole. Arreglo: `kidOk` usa `x.minAge||0`.
 - `.bud .row` heredaba el borde inferior de las filas de la lista (`.row`): clases genéricas compartidas en un CSS de un solo archivo. Se anula en el tema v2.
 - El estado inicial compartía por referencia los objetos de `DEF` (`Object.assign` superficial), así que "borrar mis datos" no restauraba los valores por defecto. Arreglo: `fresh()` clona `DEF`.
 - Al cambiar de dieta, un plato sustituido heredaba la marca "cocinado" del anterior. Arreglo: `syncPlan` borra `cooked` y `serv` de la casilla al sustituir.

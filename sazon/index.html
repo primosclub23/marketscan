@@ -505,7 +505,7 @@ const kidsF=()=>S.kids.reduce((t,k)=>t+ageF(k.a),0);
 const minKid=()=>S.kids.length?Math.min(...S.kids.map(k=>k.a)):99;
 // ¿esta comida se planifica este día? El almuerzo del cole solo de lunes a viernes y si hay peques
 const on=(d,s)=>s==='k'?S.kids.length>0&&d<5:!!S.meals[s];
-const kidOk=x=>x.minAge<=minKid()&&!(S.nutfree&&groups(x).has('fsecos'));
+const kidOk=x=>(x.minAge||0)<=minKid()&&!(S.nutfree&&groups(x).has('fsecos'));
 const pool=(slot,d)=>R.filter(x=>x.t.includes(slot)&&allowed(x)&&(slot!=='k'||kidOk(x))&&(d==null||!S.tup[d+slot]||x.tp));
 const usedSet=()=>{const u=new Set();Object.values(S.plan).forEach(d=>Object.values(d).forEach(id=>u.add(id)));return u};
 function pick(d,slot,used,not){let p=pool(slot,d).filter(x=>x.id!==not);if(!p.length)return null;const f=p.filter(x=>!used.has(x.id));if(f.length)p=f;const mine=f.filter(x=>x.custom);if(mine.length&&Math.random()<.5)p=mine;const x=p[Math.random()*p.length|0];used.add(x.id);return x.id}
@@ -629,7 +629,7 @@ function detHTML(){const D=U.det,x=RID[D.id],n=D.n;const[p,c,f]=x.m||[0,0,0];con
  <div class="stats">${D.s==='k'?`<div><b>${S.kids.length}</b><span class="lab">${S.kids.length===1?'Peque':'Peques'}</span></div>`:`<div><div class="step"><button data-a="srv" data-v="-1">−</button><b class="tick">${n}</b><button data-a="srv" data-v="1">+</button></div><div class="lab" style="margin-top:4px">Raciones</div></div>`}<div><b>${x.min} min</b><span class="lab">Tiempo</span></div><div><b>${x.kcal||'—'}</b><span class="lab">kcal/rac.</span></div></div>
  ${x.m?`<div class="macro"><i style="background:var(--text)" data-w="${kp/kt*100}"></i><i style="background:var(--accent)" data-w="${kc/kt*100}"></i><i style="background:var(--hint)" data-w="${kf/kt*100}"></i></div><div class="mleg"><span><b>${p} g</b> proteína</span><span><b>${c} g</b> hidratos</span><span><b>${f} g</b> grasas</span></div>`:''}${x.t.includes('k')?`<div class="tip">🎒 <b>Para el cole.</b> ${kidTip()}</div>`:''}${x.tp?`<div class="tip">🥡 <b>Apta para táper.</b> ${x.tp===2?'Se come fría: lleva el aliño aparte y mézclalo al momento.':'Aguanta 2–3 días en la nevera. Caliéntala 2–3 min en el microondas, removiendo a mitad.'}</div>`:''}
  <div class="seg" style="--i:${U.seg}"><button class="${U.seg?'':'on'}" data-a="seg" data-v="0">Ingredientes</button><button class="${U.seg?'on':''}" data-a="seg" data-v="1">Preparación</button></div>
- <div id="segb">${U.seg?steps:ings}</div><p class="note">${x.custom?'Receta tuya. Los ingredientes que no están en nuestro catálogo no suman al precio estimado.':'Calorías y macros aproximados por ración.'}</p>${x.custom?'<button class="btn ghost wide" style="margin-top:12px" data-a="editr">✎ Editar receta</button>':''}</div>
+ <div id="segb">${U.seg?steps:ings}</div><p class="note">${x.custom?'Receta tuya. Los ingredientes que no están en nuestro catálogo no suman al precio estimado.':'Calorías y macros aproximados por ración.'}</p><div style="display:flex;gap:8px;margin-top:12px"><button class="btn ghost" style="flex:1;padding:12px" data-a="${x.custom?'editr':'custr'}">✎ ${x.custom?'Editar':'Hacerla mía'}</button>${D.d!=null?'<button class="btn ghost" style="flex:1;padding:12px" data-a="choose">☰ Elegir otro plato</button>':''}</div></div>
  <div class="sfoot">${D.d!=null?`<button class="btn ghost" data-a="swapdet">⇄ Cambiar</button>`:`<button class="btn ghost" data-a="addp">＋ A mi semana</button>`}<button class="btn solid" data-a="cook">Modo cocina →</button></div>`}
 function openDet(id,d,s){S.recent=[id,...S.recent.filter(x=>x!==id)].slice(0,8);save();U.det={id,d,s,n:d!=null?servOf(d,s):S.people};U.seg=0;openSheet(detHTML());macroAnim()}
 function refreshDet(){const sh=$('#l1 .sheet');if(!sh||!U.det)return;const sb=$('.sbody',sh),y=sb?sb.scrollTop:0;sh.innerHTML=detHTML();$('.sbody',sh).scrollTop=y;drag($('.grab',sh),$('#l1'));document.querySelectorAll('#l1 .macro i').forEach(i=>{i.style.transition='none';i.style.width=i.dataset.w+'%'})}
@@ -654,8 +654,8 @@ function pickHTML(){const P=U.pk;return`<div class="grab"><i></i></div><div clas
 /* mis recetas */
 const EMO=['🍲','🍝','🥗','🍗','🐟','🥩','🍚','🥘','🌮','🍕','🥪','🍳','🥣','🥞','🍰','🍎'];
 function ingRow(n,q,u){return`<div class="frow"><input class="inp" list="dl" placeholder="Ingrediente" value="${n||''}"><input class="inp" inputmode="decimal" placeholder="Cant." value="${q||''}"><select class="inp" style="padding:12px 4px"><option ${u==='g'?'selected':''}>g</option><option ${u==='ml'?'selected':''}>ml</option><option ${u==='ud'?'selected':''}>ud</option></select><button data-a="frm" aria-label="Quitar">✕</button></div>`}
-function formHTML(){const F=U.form,x=F.id?RID[F.id]:null;const sv=x?x.sv||S.people:S.people;
- return`<div class="grab"><i></i></div><div class="sbody"><h2>${x?'Editar':'Añadir'} mi <em>receta</em></h2><div class="lab sec">Nombre</div><input class="inp" id="fn" placeholder="Ej. Macarrones de mi madre" value="${x?x.n:''}" maxlength="60">
+function formHTML(){const F=U.form,x=RID[F.id||F.src]||null;const sv=x?x.sv||S.people:S.people;
+ return`<div class="grab"><i></i></div><div class="sbody"><h2>${F.src?'Hazla <em>tuya</em>':(x?'Editar':'Añadir')+' mi <em>receta</em>'}</h2>${F.src?'<p class="sub">Cambia, quita o añade ingredientes y pasos. Se guarda como una receta tuya; la original no se toca.</p>':''}<div class="lab sec">Nombre</div><input class="inp" id="fn" placeholder="Ej. Macarrones de mi madre" value="${x?x.n:''}" maxlength="60">
  <div class="lab sec">Foto del plato · opcional</div><div class="fphoto"><div class="art ${F.img?'ph':''}" id="fprev" style="--c:#E6D2AE${F.img?`;--img:url(${F.img})`:''}">${F.e}</div><label class="btn ghost" style="padding:11px 18px">📷 ${F.img?'Cambiar foto':'Añadir foto'}<input type="file" accept="image/*" id="fph"></label></div>
  <div class="lab sec">Icono</div><div class="hs">${EMO.map(e=>`<button class="chip ${F.e===e?'on':''}" data-a="fe" data-v="${e}" style="font-size:20px;padding:7px 12px">${e}</button>`).join('')}</div>
  <div class="lab sec">¿Para qué comida?</div><div class="chips">${ALL.map(([k,n,e])=>`<button class="chip ${F.t.includes(k)?'on':''}" data-a="ft" data-v="${k}">${e} ${n}</button>`).join('')}<button class="chip ${F.tp?'on':''}" data-a="ftp">🥡 Apta para táper</button></div>
@@ -664,8 +664,9 @@ function formHTML(){const F=U.form,x=F.id?RID[F.id]:null;const sv=x?x.sv||S.peop
  <datalist id="dl">${Object.values(ING).map(i=>`<option value="${i[0].replace(/ \(.*\)/,'')}">`).join('')}</datalist>
  <div class="lab sec">Preparación · un paso por línea</div><textarea class="inp" id="fp" placeholder="Cuece la pasta&#10;Haz el sofrito&#10;Mezcla y gratina">${x?x.steps.map(s=>s.t).join('\n'):''}</textarea>
  <p class="note">Deja la cantidad vacía para «al gusto». Se añadirá a tus menús y a la lista de la compra.</p></div>
- <div class="sfoot">${x?'<button class="btn ghost" data-a="fdel" style="flex:none">Eliminar</button>':''}<button class="btn solid" data-a="fsave">Guardar receta</button></div>`}
-function openForm(id){const x=id?RID[id]:null;U.form={id:id||null,e:x?x.e:'🍲',t:x?x.t.split(''):['l'],tp:x?x.tp:0,img:x?x.img||'':'',del:0};openSheet(formHTML())}
+ <div class="sfoot">${F.id?'<button class="btn ghost" data-a="fdel" style="flex:none">Eliminar</button>':''}<button class="btn solid" data-a="fsave">Guardar receta</button></div>`}
+// src: receta de la que se parte para «hacerla tuya» (se guarda como copia); ctx: casilla del menú que debe pasar a usar la copia
+function openForm(id,src,ctx){const x=RID[id||src]||null;U.form={id:id||null,src:src||null,ctx:ctx||null,e:x?x.e:'🍲',t:x?x.t.split(''):['l'],tp:x?x.tp:0,img:x?imgOf(x):'',del:0};openSheet(formHTML())}
 function dropRecipe(id){const i=R.findIndex(x=>x.id===id);if(i>=0)R.splice(i,1);delete RID[id];S.custom=S.custom.filter(x=>x.id!==id);S.fav=S.fav.filter(x=>x!==id)}
 
 /* ============ ACCIONES ============ */
@@ -682,6 +683,10 @@ const A={
  tupd(v){const k=v+'l';if(S.tup[k])delete S.tup[k];else S.tup[k]=1;buzz();setting()},
  tup(v,el){const k=U.day+el.dataset.s;if(S.tup[k])delete S.tup[k];else S.tup[k]=1;buzz();syncPlan();render();toast(S.tup[k]?'Plato para llevar en táper':'Táper desactivado')},
  newr(){openForm()},
+ custr(){const D=U.det;U.det=null;openForm(null,D.id,D.d!=null?{d:D.d,s:D.s}:null)},
+ choose(){const D=U.det,l=pool(D.s,D.d).sort((a,b)=>(b.custom?1:0)-(a.custom?1:0)||a.n.localeCompare(b.n));
+  openSheet(`<div class="grab"><i></i></div><div class="sbody"><h2>Elige el <em>plato</em></h2><p class="sub">${SLOTN[D.s][1]} del ${DAYS[D.d].toLowerCase()}. Tus recetas salen primero.</p><div style="margin-top:10px">${l.map(x=>`<div class="row" data-a="chpick" data-v="${x.id}">${art(x).replace('style="--c','style="width:54px;height:54px;font-size:26px;--c')}<span class="n"><span style="background:none">${x.n}</span>${x.custom?' <span class="tag">Mía</span>':''}${x.id===D.id?' <span class="tag">Actual</span>':''}</span><span class="q">${x.min} min · ${eur(costPP(x))}</span></div>`).join('')}</div></div>`,'#l2')},
+ chpick(v){const D=U.det;S.plan[D.d][D.s]=v;delete S.cooked[D.d+D.s];delete S.serv[D.d+D.s];save();D.id=v;D.n=servOf(D.d,D.s);buzz();closeSheet('#l2');const sh=$('#l1 .sheet');sh.innerHTML=detHTML();drag($('.grab',sh),$('#l1'));macroAnim();render()},
  skip(v,el){const k=U.day+el.dataset.s;if(S.skip[k])delete S.skip[k];else{S.skip[k]=1;delete S.cooked[k];delete S.serv[k]}buzz();syncPlan();render();toast(S.skip[k]?'Comida quitada del menú y de la lista':'Comida recuperada')},
  kadd(){if(S.kids.length>=6)return;S.kids.push({n:'',a:7});buzz();setting()},
  kdel(v){S.kids.splice(+v,1);S.serv={};setting()},
@@ -702,10 +707,12 @@ const A={
    if(!id){id='c_'+norm(n).replace(/[^a-z0-9]+/g,'_')+'_'+u;if(!ING[id]){S.cing[id]=ING[id]=[esc(n[0].toUpperCase()+n.slice(1)),'🛒','O',u,0,'',0]}}
    const ex=ing.find(i=>i[0]===id);if(ex)ex[1]+=q/sv;else ing.push([id,q/sv])});
   if(!ing.length)return toast('Añade al menos un ingrediente');
-  const steps=$('#fp').value.split('\n').map(t=>t.trim()).filter(Boolean).map(t=>({t:esc(t),m:0}));if(!steps.length)steps.push({t:'Prepara a tu manera.',m:0});
-  const x={id:F.id||'u_'+Date.now().toString(36),n:esc(name),d:'Receta tuya.',t:ALL.map(s=>s[0]).filter(k=>F.t.includes(k)).join(''),min:Math.max(1,parseInt($('#fm').value)||20),kcal:parseInt($('#fk').value)||0,m:null,e:F.e,tag:'Mía',ing,steps,tp:F.tp,custom:1,sv,img:F.img||''};
+  const base=RID[F.id||F.src],tm=base?Object.fromEntries(base.steps.map(s=>[unesc(s.t),s.m])):{};
+  const steps=$('#fp').value.split('\n').map(t=>t.trim()).filter(Boolean).map(t=>({t:esc(t),m:tm[t]||tm[esc(t)]||0}));if(!steps.length)steps.push({t:'Prepara a tu manera.',m:0});
+  const x={id:F.id||'u_'+Date.now().toString(36),n:esc(name),d:'Receta tuya.',t:ALL.map(s=>s[0]).filter(k=>F.t.includes(k)).join(''),min:Math.max(1,parseInt($('#fm').value)||20),kcal:parseInt($('#fk').value)||0,m:null,e:F.e,tag:'Mía',ing,steps,tp:F.tp,custom:1,sv,img:F.img||'',minAge:base?base.minAge||0:0};
   if(F.id){const old=RID[F.id];Object.keys(old).forEach(k=>delete old[k]);Object.assign(old,x)}else{R.push(x);RID[x.id]=x;S.custom.push(x)}
-  syncPlan();save();closeSheet();U.tab='desc';U.filter='mine';U.q='';render(true);buzz(15);toast('Receta guardada')},
+  if(F.ctx&&S.plan[F.ctx.d]){S.plan[F.ctx.d][F.ctx.s]=x.id;delete S.cooked[F.ctx.d+F.ctx.s]}
+  syncPlan();save();closeSheet();buzz(15);if(F.ctx){U.tab='semana';U.day=F.ctx.d;render(true);toast('Tu versión ya está en el menú')}else{U.tab='desc';U.filter='mine';U.q='';render(true);toast('Receta guardada')}},
  store(v){S.store=v;save();render()},
  tab(v){if(U.tab===v)return window.scrollTo({top:0,behavior:'smooth'});U.tab=v;U.reset=0;buzz();render(true)},
  day(v,el,dir){v=+v;if(v===U.day)return;dir=dir||(v>U.day?'sl':'sr');U.day=v;buzz();document.querySelectorAll('.day').forEach((b,i)=>b.classList.toggle('on',i===v));const b=$('#daybody');b.innerHTML=dayBody();b.className='';void b.offsetWidth;b.className=dir},
