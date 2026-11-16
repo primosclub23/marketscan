@@ -12,7 +12,7 @@ Planificador de menú semanal (desayuno, comida, merienda opcional y cena) con l
 - **Precios estimados, no reales.** Cada ingrediente lleva un precio orientativo escrito a mano en `ING`. No se consulta ningún supermercado. La app lo dice en la lista. Los básicos de despensa (aceite, sal, especias) no suman al total.
 - **"Compra guiada" en vez de "comprar online".** Ningún súper ofrece una API pública para volcar un carrito, así que se abre el buscador web de la tienda elegida producto a producto (`STORES`). Las URLs de búsqueda no se han podido verificar desde el entorno de desarrollo (red bloqueada): comprobarlas en un móvil real.
 - **Sin logos de supermercados** (marcas registradas): solo el nombre en texto.
-- **Ilustración con emoji** sobre fondo tintado en lugar de fotos: no hay banco de fotos con licencia.
+- **Fotos de plato generadas con IA** (Higgsfield, modelo `gpt_image_2_6`, 1:1), una por receta en `img/<id>.jpg` (560 px, JPEG q76, ~3 MB en total). Estilo acordado con el usuario a partir de referencias: foto editorial, plato protagonista, luz natural, piedra/lino/madera. Se pintan con un `::after` encima del emoji, así que si una imagen no carga se sigue viendo el emoji. Las recetas propias pueden llevar foto del usuario (`x.img`, data URL de 480 px).
 - **Calorías y macros** son aproximaciones por ración, no cálculo nutricional.
 - El generador elige platos al azar sin repetir, respetando dieta y exclusiones, y después sustituye los más caros hasta entrar en presupuesto (`fitBudget`). `syncPlan` ajusta el plan cuando cambian los ajustes sin regenerarlo entero.
 - La semana es siempre la actual (lunes–domingo); todavía no hay navegación entre semanas.
