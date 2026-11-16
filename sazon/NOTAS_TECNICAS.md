@@ -6,7 +6,7 @@ Planificador de menú semanal (desayuno, comida, merienda opcional y cena) con l
 - App web estática de un solo archivo (`index.html`): HTML + CSS + JS sin dependencias ni build. Vive en `sazon/` dentro del repo `marketscan` hasta que tenga repo propio.
 - PWA: `manifest.webmanifest`, `sw.js` (red primero, caché de respaldo) e iconos PNG.
 - Datos del usuario solo en `localStorage` (clave `sazon.v1`). No hay backend ni cuentas.
-- Estilo: sistema visual propio en modo beige (Playfair Display / Inter / Space Mono, bordes 0.5px, botones pill).
+- Estilo (v2, elegido por el usuario a partir de una referencia): crema + verde oliva + terracota, tarjetas blandas con sombra, títulos en Playfair Display con la palabra acento en manuscrita (Sacramento), barra inferior oliva con iconos de línea. Está implementado como un bloque de CSS «tema v2» que sobrescribe el tema beige original; si se consolida, conviene fusionar ambos.
 
 ## Decisiones no obvias
 - **Precios estimados, no reales.** Cada ingrediente lleva un precio orientativo escrito a mano en `ING`. No se consulta ningún supermercado. La app lo dice en la lista. Los básicos de despensa (aceite, sal, especias) no suman al total.
@@ -21,6 +21,9 @@ Planificador de menú semanal (desayuno, comida, merienda opcional y cena) con l
 - **Recetas propias**: se guardan en `S.custom` y se inyectan en `R`/`RID` al arrancar. Los ingredientes que no existen en `ING` (o que se dan en otra unidad) se crean en `S.cing` con precio 0 y pasillo "Otros"; no suman al precio estimado. Sin grupo de dieta: los filtros vegetariano/vegano/sin gluten no pueden detectarlos. El texto del usuario se escapa al guardar (`esc`) porque todo se pinta con `innerHTML`. `pick` da un 50 % de preferencia a las recetas propias aún no usadas.
 - **Táper**: `S.tup` marca casillas día+comida (`"0l"`). En esas casillas `pool` solo admite recetas con `tp` (1 se recalienta, 2 se come fría; mapa `TP`). Se activa por día en ajustes/onboarding (solo comida) o con el botón de la cabecera de Comida/Cena.
 
+- **Perfil**: nombre y foto (`S.name`, `S.photo`). La foto se recorta a cuadrado y se reduce a 320 px en un canvas antes de guardarla como data URL en `localStorage`, para no agotar la cuota. Racha = días consecutivos con algo cocinado en modo cocina (`S.cookDays`, por fecha local).
+
 ## Bugs y lecciones
+- `.bud .row` heredaba el borde inferior de las filas de la lista (`.row`): clases genéricas compartidas en un CSS de un solo archivo. Se anula en el tema v2.
 - El estado inicial compartía por referencia los objetos de `DEF` (`Object.assign` superficial), así que "borrar mis datos" no restauraba los valores por defecto. Arreglo: `fresh()` clona `DEF`.
 - Al cambiar de dieta, un plato sustituido heredaba la marca "cocinado" del anterior. Arreglo: `syncPlan` borra `cooked` y `serv` de la casilla al sustituir.
