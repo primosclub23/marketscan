@@ -17,5 +17,10 @@ Planificador de menú semanal (desayuno, comida, merienda opcional y cena) con l
 - El generador elige platos al azar sin repetir, respetando dieta y exclusiones, y después sustituye los más caros hasta entrar en presupuesto (`fitBudget`). `syncPlan` ajusta el plan cuando cambian los ajustes sin regenerarlo entero.
 - La semana es siempre la actual (lunes–domingo); todavía no hay navegación entre semanas.
 
+- **Evitar ingredientes**: además de los grupos predefinidos (`AVOID`), `S.avoidIng` guarda ids sueltos elegidos con el buscador. Solo busca en el catálogo de la app (un ingrediente que no sale en ninguna receta no hace falta evitarlo).
+- **Recetas propias**: se guardan en `S.custom` y se inyectan en `R`/`RID` al arrancar. Los ingredientes que no existen en `ING` (o que se dan en otra unidad) se crean en `S.cing` con precio 0 y pasillo "Otros"; no suman al precio estimado. Sin grupo de dieta: los filtros vegetariano/vegano/sin gluten no pueden detectarlos. El texto del usuario se escapa al guardar (`esc`) porque todo se pinta con `innerHTML`. `pick` da un 50 % de preferencia a las recetas propias aún no usadas.
+- **Táper**: `S.tup` marca casillas día+comida (`"0l"`). En esas casillas `pool` solo admite recetas con `tp` (1 se recalienta, 2 se come fría; mapa `TP`). Se activa por día en ajustes/onboarding (solo comida) o con el botón de la cabecera de Comida/Cena.
+
 ## Bugs y lecciones
+- El estado inicial compartía por referencia los objetos de `DEF` (`Object.assign` superficial), así que "borrar mis datos" no restauraba los valores por defecto. Arreglo: `fresh()` clona `DEF`.
 - Al cambiar de dieta, un plato sustituido heredaba la marca "cocinado" del anterior. Arreglo: `syncPlan` borra `cooked` y `serv` de la casilla al sustituir.
