@@ -457,7 +457,7 @@ R.forEach(x=>{x.tp=TP[x.id]||0;x.minAge=MINAGE[x.id]||0});
 const RID=Object.fromEntries(R.map(x=>[x.id,x]));
 const SLOTS=[['b','Desayuno','☕','Para empezar el día'],['l','Comida','🍲','El plato fuerte'],['s','Merienda','🍎','Opcional, algo ligero'],['d','Cena','🌙','Más ligera']];
 // ALL incluye el almuerzo del cole (k), que no se activa con un interruptor sino al añadir peques
-const ALL=[SLOTS[0],['k','Almuerzo del cole','🎒','Para la mochila'],SLOTS[1],SLOTS[2],SLOTS[3]];
+const ALL=[['k','Almuerzo del cole','🎒','Para la mochila'],...SLOTS];
 const SLOTN=Object.fromEntries(ALL.map(s=>[s[0],s]));
 const DAYS=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const AVOID=[['pescado','Pescado','🐟',x=>['salmon','merluza','bacalao','atun_lata'].includes(x)],['marisco','Marisco','🦐',x=>x==='gambas'],['cerdo','Cerdo','🥓',x=>['cerdo_lomo','jamon_serrano'].includes(x)],['ternera','Ternera','🥩',x=>x==='ternera_picada'],['champi','Champiñones','🍄',x=>x==='champi'],['cebolla','Cebolla','🧅',x=>x==='cebolla'],['tomate','Tomate','🍅',x=>['tomate','cherry','tomate_triturado'].includes(x)],['huevo','Huevo','🥚',x=>x==='huevo'],['aguacate','Aguacate','🥑',x=>x==='aguacate'],['berenjena','Berenjena','🍆',x=>x==='berenjena'],['fsecos','Frutos secos','🌰',x=>ING[x][5]==='fsecos'],['queso','Queso','🧀',x=>['queso_rallado','queso_fresco','feta','parmesano'].includes(x)],['coco','Coco','🥥',x=>x==='leche_coco'],['platano','Plátano','🍌',x=>x==='platano']];
