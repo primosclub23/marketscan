@@ -58,6 +58,7 @@ h2{font-family:var(--serif);font-weight:700;font-size:22px;line-height:1.15}
 .hs::-webkit-scrollbar{display:none}
 .chip{display:inline-flex;align-items:center;gap:6px;border:.5px solid rgba(0,0,0,.14);border-radius:100px;padding:9px 15px;font-size:13px;color:var(--muted);background:transparent;transition:background .25s,color .25s,transform .2s var(--spring),border-color .25s;white-space:nowrap;flex-shrink:0}
 .chip:active{transform:scale(.93)}
+a.chip{text-decoration:none}
 .chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 .tag{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-dark);background:rgba(155,94,58,.09);border:.5px solid rgba(155,94,58,.25);border-radius:100px;padding:3px 9px;white-space:nowrap}
 .tags{display:flex;gap:5px;flex-wrap:wrap}
@@ -656,7 +657,7 @@ const EMO=['🍲','🍝','🥗','🍗','🐟','🥩','🍚','🥘','🌮','🍕'
 function ingRow(n,q,u){return`<div class="frow"><input class="inp" list="dl" placeholder="Ingrediente" value="${n||''}"><input class="inp" inputmode="decimal" placeholder="Cant." value="${q||''}"><select class="inp" style="padding:12px 4px"><option ${u==='g'?'selected':''}>g</option><option ${u==='ml'?'selected':''}>ml</option><option ${u==='ud'?'selected':''}>ud</option></select><button data-a="frm" aria-label="Quitar">✕</button></div>`}
 function formHTML(){const F=U.form,x=RID[F.id||F.src]||null;const sv=x?x.sv||S.people:S.people;
  return`<div class="grab"><i></i></div><div class="sbody"><h2>${F.src?'Hazla <em>tuya</em>':(x?'Editar':'Añadir')+' mi <em>receta</em>'}</h2>${F.src?'<p class="sub">Cambia, quita o añade ingredientes y pasos. Se guarda como una receta tuya; la original no se toca.</p>':''}<div class="lab sec">Nombre</div><input class="inp" id="fn" placeholder="Ej. Macarrones de mi madre" value="${x?x.n:''}" maxlength="60">
- <div class="lab sec">Foto del plato · opcional</div><div class="fphoto"><div class="art ${F.img?'ph':''}" id="fprev" style="--c:#E6D2AE${F.img?`;--img:url(${F.img})`:''}">${F.e}</div><label class="btn ghost" style="padding:11px 18px">📷 ${F.img?'Cambiar foto':'Añadir foto'}<input type="file" accept="image/*" id="fph"></label></div>
+ <div class="lab sec">Foto del plato · opcional</div><div class="fphoto"><div class="art ${F.img?'ph':''}" id="fprev" style="--c:#E6D2AE${F.img?`;--img:url(${F.img})`:''}">${F.e}</div><label class="btn ghost" style="padding:11px 18px">📷 ${F.img?'Cambiar foto':'Añadir foto'}<input type="file" accept="image/*" id="fph"></label></div><button class="lab" data-a="aiphoto" style="color:var(--accent);margin-top:10px">✨ ¿No tienes foto? Créala con IA</button>
  <div class="lab sec">Icono</div><div class="hs">${EMO.map(e=>`<button class="chip ${F.e===e?'on':''}" data-a="fe" data-v="${e}" style="font-size:20px;padding:7px 12px">${e}</button>`).join('')}</div>
  <div class="lab sec">¿Para qué comida?</div><div class="chips">${ALL.map(([k,n,e])=>`<button class="chip ${F.t.includes(k)?'on':''}" data-a="ft" data-v="${k}">${e} ${n}</button>`).join('')}<button class="chip ${F.tp?'on':''}" data-a="ftp">🥡 Apta para táper</button></div>
  <div class="lab sec">Datos</div><div class="f3"><label><span class="meta">Minutos</span><input class="inp" id="fm" inputmode="numeric" value="${x?x.min:''}" placeholder="30"></label><label><span class="meta">Raciones</span><input class="inp" id="fs" inputmode="numeric" value="${sv}"></label><label><span class="meta">kcal/ración</span><input class="inp" id="fk" inputmode="numeric" value="${x&&x.kcal?x.kcal:''}" placeholder="opcional"></label></div>
@@ -668,6 +669,8 @@ function formHTML(){const F=U.form,x=RID[F.id||F.src]||null;const sv=x?x.sv||S.p
 // src: receta de la que se parte para «hacerla tuya» (se guarda como copia); ctx: casilla del menú que debe pasar a usar la copia
 function openForm(id,src,ctx){const x=RID[id||src]||null;U.form={id:id||null,src:src||null,ctx:ctx||null,e:x?x.e:'🍲',t:x?x.t.split(''):['l'],tp:x?x.tp:0,img:x?imgOf(x):'',del:0};openSheet(formHTML())}
 function dropRecipe(id){const i=R.findIndex(x=>x.id===id);if(i>=0)R.splice(i,1);delete RID[id];S.custom=S.custom.filter(x=>x.id!==id);S.fav=S.fav.filter(x=>x!==id)}
+
+async function copyText(txt,ok){try{await navigator.clipboard.writeText(txt);toast(ok)}catch(e){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();let done=false;try{done=document.execCommand('copy')}catch(_){}ta.remove();toast(done?ok:'No se pudo copiar: selecciona el texto y cópialo a mano')}}
 
 /* ============ ACCIONES ============ */
 function setting(){if(S.ob)syncPlan();save();render()}
@@ -683,6 +686,16 @@ const A={
  tupd(v){const k=v+'l';if(S.tup[k])delete S.tup[k];else S.tup[k]=1;buzz();setting()},
  tup(v,el){const k=U.day+el.dataset.s;if(S.tup[k])delete S.tup[k];else S.tup[k]=1;buzz();syncPlan();render();toast(S.tup[k]?'Plato para llevar en táper':'Táper desactivado')},
  newr(){openForm()},
+ aiphoto(){const name=($('#fn').value.trim()||'un plato casero'),ings=[...document.querySelectorAll('#fi .frow input:first-child')].map(i=>i.value.trim().toLowerCase()).filter(Boolean).slice(0,8);
+  const pr=`Genera una imagen cuadrada (1:1): fotografía gastronómica editorial y fotorrealista de «${name}»${ings.length?', hecho con '+ings.join(', '):''}. El plato es el protagonista y ocupa casi todo el encuadre, servido en un plato o cuenco de cerámica artesanal. Vista en tres cuartos desde arriba, luz natural lateral con sombras suaves, sobre una mesa de piedra beige o madera clara con una servilleta de lino, poca profundidad de campo, colores naturales y apetecibles, calidad de revista de cocina. Sin texto, sin manos y sin personas.`;
+  const q=encodeURIComponent(pr);
+  openSheet(`<div class="grab"><i></i></div><div class="sbody"><h2>Crea la <em>foto</em> con IA</h2><p class="sub">Hemos escrito la descripción de tu plato con el mismo estilo que el resto de fotos. Se copia sola al abrir cualquiera de estas apps.</p>
+  <textarea class="inp" id="aipr" style="margin-top:14px;font-size:13px;min-height:150px">${esc(pr)}</textarea>
+  <div class="lab sec">1 · Abre una de estas y pega la descripción</div><div class="chips"><a class="chip" data-cp="1" href="https://chatgpt.com/?q=${q}" target="_blank" rel="noopener">ChatGPT ↗</a><a class="chip" data-cp="1" href="https://gemini.google.com/app" target="_blank" rel="noopener">Gemini ↗</a><a class="chip" data-cp="1" href="https://copilot.microsoft.com/?q=${q}" target="_blank" rel="noopener">Copilot ↗</a><button class="chip" data-a="aicopy">Copiar descripción</button></div>
+  <div class="lab sec">2 · Guarda la imagen en tu móvil</div><p class="meta">Mantén pulsada la imagen que te genere y elige «Guardar».</p>
+  <div class="lab sec">3 · Vuelve aquí y súbela</div><p class="meta">Cierra esta ventana y toca «Añadir foto» para elegirla de tu galería.</p>
+  <p class="note">Estas apps son servicios externos con sus propias condiciones; algunas piden cuenta o limitan las imágenes gratis.</p></div><div class="sfoot"><button class="btn solid" data-a="close" data-l="#l2">Hecho, voy a subirla</button></div>`,'#l2')},
+ aicopy(){copyText($('#aipr').value,'Descripción copiada')},
  custr(){const D=U.det;U.det=null;openForm(null,D.id,D.d!=null?{d:D.d,s:D.s}:null)},
  choose(){const D=U.det,l=pool(D.s,D.d).sort((a,b)=>(b.custom?1:0)-(a.custom?1:0)||a.n.localeCompare(b.n));
   openSheet(`<div class="grab"><i></i></div><div class="sbody"><h2>Elige el <em>plato</em></h2><p class="sub">${SLOTN[D.s][1]} del ${DAYS[D.d].toLowerCase()}. Tus recetas salen primero.</p><div style="margin-top:10px">${l.map(x=>`<div class="row" data-a="chpick" data-v="${x.id}">${art(x).replace('style="--c','style="width:54px;height:54px;font-size:26px;--c')}<span class="n"><span style="background:none">${x.n}</span>${x.custom?' <span class="tag">Mía</span>':''}${x.id===D.id?' <span class="tag">Actual</span>':''}</span><span class="q">${x.min} min · ${eur(costPP(x))}</span></div>`).join('')}</div></div>`,'#l2')},
@@ -736,13 +749,13 @@ const A={
  chk(v,el){S.chk[v]=S.chk[v]?0:1;save();buzz();el.classList.toggle('on');clearTimeout(A.chk.t);A.chk.t=setTimeout(()=>{if(U.tab==='lista')render()},650)},
  filter(v){U.filter=v;render()},
  async copy(){const all=shopping().filter(i=>!i.pantry&&!S.chk[i.id]);const txt='Lista de la compra\n'+Object.keys(AISLE).map(k=>{const it=all.filter(i=>i.aisle===k);return it.length?`\n${AISLE[k][0]}\n`+it.map(i=>`- ${unesc(ING[i.id][0])}: ${qty(i.id,i.q,1)}`).join('\n'):''}).filter(Boolean).join('\n');
-  try{await navigator.clipboard.writeText(txt);toast('Lista copiada')}catch(e){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){}ta.remove();toast(ok?'Lista copiada':'No se pudo copiar aquí')}},
+  copyText(txt,'Lista copiada')},
  guide(){GD={items:shopping().filter(i=>!i.pantry&&!S.chk[i.id]).sort((a,b)=>a.aisle.localeCompare(b.aisle)),i:0};openSheet(guideHTML())},
  gskip(){GD.i++;gnext()},gok(){S.chk[GD.items[GD.i].id]=1;save();buzz();GD.i++;gnext();render()}
 };
 function gnext(){const sh=$('#l1 .sheet');sh.innerHTML=guideHTML();drag($('.grab',sh),$('#l1'));$('.sbody',sh).classList.add('enter')}
 
-document.addEventListener('click',e=>{if(e.target.closest('a'))return;const el=e.target.closest('[data-a]');if(!el)return;const f=A[el.dataset.a];if(f)f(el.dataset.v,el)});
+document.addEventListener('click',e=>{const an=e.target.closest('a');if(an){if(an.dataset.cp&&$('#aipr'))copyText($('#aipr').value,'Descripción copiada');return}const el=e.target.closest('[data-a]');if(!el)return;const f=A[el.dataset.a];if(f)f(el.dataset.v,el)});
 document.addEventListener('input',e=>{const t=e.target;
  if(t.id==='rng'){S.budget=+t.value;t.style.setProperty('--p',(S.budget-20)/280*100+'%');$('#bn').textContent=S.budget;save()}
  if(t.id==='nm'){S.name=t.value.slice(0,24);save()}

@@ -29,6 +29,8 @@ Planificador de menú semanal (desayuno, comida, merienda opcional y cena) con l
 - **Hacer tuyo un plato**: «Hacerla mía» abre el formulario de recetas propias precargado con una receta del catálogo (`U.form.src`) y la guarda como copia; la original no se modifica. Si se abrió desde una casilla del menú (`U.form.ctx`), esa casilla pasa a usar la copia. La copia hereda la foto original (`img` = ruta `img/<id>.jpg`) hasta que el usuario suba la suya, y conserva los temporizadores de los pasos cuyo texto no cambia. Los macros no se copian porque dejan de ser válidos al cambiar ingredientes.
 - **Elegir plato**: además de «Cambiar» (al azar), «Elegir otro plato» lista todas las recetas válidas para esa casilla, con las propias primero.
 
+- **Foto con IA para recetas propias**: sin backend no se puede generar la imagen desde la app, así que el formulario redacta una descripción (nombre + ingredientes, en el estilo del resto de fotos), la copia al portapapeles y abre ChatGPT, Gemini o Copilot. ChatGPT y Copilot reciben el texto en `?q=`; Gemini no admite prellenado y hay que pegarlo. El usuario guarda la imagen y la sube con «Añadir foto». Los enlaces no se han podido probar desde el entorno de desarrollo (red bloqueada).
+
 ## Bugs y lecciones
 - Las recetas propias no tenían `minAge`, y `undefined <= edad` es falso, así que nunca salían como almuerzo del cole. Arreglo: `kidOk` usa `x.minAge||0`.
 - `.bud .row` heredaba el borde inferior de las filas de la lista (`.row`): clases genéricas compartidas en un CSS de un solo archivo. Se anula en el tema v2.
