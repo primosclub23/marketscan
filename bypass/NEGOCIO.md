@@ -102,6 +102,7 @@ El operador lo descubre y lo usa gratis. Lo enseña en el relevo. Cuando lo usa 
 
 | Fase | Qué | Cuándo |
 |---|---|---|
+| **0b. Modo maniobra** ✅ | Pasos de aislamiento sobre el plano, vuelta a servicio generada sola y hoja de maniobra imprimible | Hecho |
 | **0. Prototipo** ✅ | El editor actual: líneas, bifurcaciones, equipos, válvulas, fluidos con color, leyenda, cajetín, exportar | Hecho |
 | **1. Pulido** | Saltos de línea en los cruces, conexión magnética a las bocas de los equipos, selección múltiple, más símbolos (filtros, eyectores, mezcladores, tanques esféricos), exportar a PDF en A3 | 1–2 meses |
 | **2. Versión pública gratis** | Web propia, tablet, plantillas de ejemplo, que la prueben 20–50 operadores | +1 mes |

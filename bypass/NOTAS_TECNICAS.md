@@ -29,6 +29,12 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
   - Con una línea seleccionada: los cuadrados mueven un vértice y los rombos mueven un tramo entero. Si el tramo es el primero o el último, se crea un codo nuevo.
 - **Saltos en los cruces**: `hopPath()` hace que los tramos horizontales salten en arco sobre los verticales de otras líneas. Los cruces se calculan en `renderItems` (`VSEGS`).
 - **Válvula abierta / cerrada**: `it.closed` rellena el cuerpo de la válvula (convenio de válvula cerrada). Solo en manual, automática, motorizada y tres vías. Tecla `C` o el inspector.
+- **Modo maniobra** (botón «Maniobra» de la barra superior):
+  - Datos en `S.manis = [{title, permit, by, steps:[{phase:'a'|'v', target, act, note, done, x, y, vert}]}]`. `a` = aislamiento, `v` = vuelta a servicio (normalizar).
+  - Las acciones están en `ACTS`. Cada una puede tener su inversa (`inv`), el estado de válvula que deja (`st`) y si pone o quita candado (`lock`/`unlock`). `actsFor(item)` decide qué acciones se ofrecen según lo que se toque.
+  - `manState()` calcula cómo queda el plano tras los pasos: válvulas cerradas en rojo, ciegos en las líneas y candados. Lo dibuja `drawManOverlay()`, junto con los números de paso. El dibujo original no se modifica.
+  - `buildReturn()` genera la vuelta a servicio: recorre el aislamiento al revés con las acciones inversas.
+  - `openSheet()` monta la hoja de maniobra A4. Se imprime con `window.print()` y unos estilos `@media print`.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
 ## Pendiente o ideas
