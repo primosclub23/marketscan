@@ -67,6 +67,11 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
   - Panel «Estado de válvulas»: listas de cerradas y abiertas con su tipo. Tocar una centra el plano en ella.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
+## Móvil y tablet
+
+- Por debajo de 700 px: barra superior compacta (los tres modos siempre visibles), panel lateral como cajón que se abre con ☰ (`.app.drawer`) y se cierra al tocar el plano o elegir una herramienta. El botón «Ver flujo» pasa a la izquierda.
+- Zoom con dos dedos: `PTRS` guarda los punteros y el arrastre de tipo `pinch`.
+
 ## Pendiente o ideas
 
 - Selección múltiple.
