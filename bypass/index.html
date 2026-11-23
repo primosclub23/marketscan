@@ -146,6 +146,11 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);opacity:0;transition:.25s;background:var(--hz);color:#111;font-family:var(--cond);font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:9px 16px;border-radius:4px;z-index:30;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%)}
 
+/* ── Imán ── */
+.snapring{transform-box:fill-box;transform-origin:center;animation:snapPulse .9s ease-out infinite}
+@keyframes snapPulse{0%{transform:scale(.55);opacity:1}100%{transform:scale(1.8);opacity:0}}
+.snapfx{transform-box:fill-box;transform-origin:center;animation:snapFx .5s ease-out forwards;pointer-events:none}
+@keyframes snapFx{0%{transform:scale(.4);opacity:1}100%{transform:scale(2.8);opacity:0}}
 /* ── Modo maniobra ── */
 .modetg{display:flex;background:var(--ui3);border:1px solid var(--line);border-radius:4px;padding:2px;flex:none}
 .modetg button{padding:6px 11px;border-radius:3px;font-family:var(--cond);font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);display:flex;gap:6px;align-items:center}
@@ -290,7 +295,11 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
       <div class="grid" data-group="va"></div>
     </section>
     <section class="sec">
-      <div class="sh"><span class="n">05</span><h3>Anotaciones</h3></div>
+      <div class="sh"><span class="n">05</span><h3>Purgas y mangueras</h3></div>
+      <div class="grid" data-group="pm"></div>
+    </section>
+    <section class="sec">
+      <div class="sh"><span class="n">06</span><h3>Anotaciones</h3></div>
       <div class="grid" data-group="ot"></div>
     </section>
     <div class="foot">
@@ -298,7 +307,8 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
       <b>1–9</b> fluido · <b>C</b> abrir/cerrar · <b>R</b> girar · <b>F</b> espejo<br>
       <b>Supr</b> borrar · <b>Ctrl+D</b> duplicar<br>
       <b>Rueda</b> zoom · <b>Espacio</b>+arrastrar mover<br>
-      <b>Alt</b> línea en ángulo libre
+      <b>Imán</b>: acerca y se engancha solo<br>
+      <b>Alt</b> sin imán / ángulo libre
     </div>
    </div>
    <div id="asideMan"></div>
@@ -306,7 +316,7 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
 
   <main class="stage" id="stage">
     <svg id="cv" xmlns="http://www.w3.org/2000/svg">
-      <g id="view"><g id="world"></g><g id="over"></g></g>
+      <g id="view"><g id="world"></g><g id="over"></g><g id="fx"></g></g>
     </svg>
     <div class="hint" id="hint" hidden>
       <h2>Lienzo vacío</h2>
@@ -361,7 +371,7 @@ const DEFAULT_FLUIDS=[
 /* ════════ Símbolos ════════
    Cada símbolo se dibuja centrado en (0,0). bb = caja [x0,y0,x1,y1].
    Las líneas de proceso entran por coordenadas múltiplos de 10. */
-const BOWD='M-20,-12 L0,0 L-20,12 Z M20,-12 L0,0 L20,12 Z', CLOSABLE=['manual','control','motor','tresvias'];
+const BOWD='M-20,-12 L0,0 L-20,12 Z M20,-12 L0,0 L20,12 Z', CLOSABLE=['manual','control','motor','tresvias','venteo','drenaje'];
 const BOW='<path d="M-20,-12 L0,0 L-20,12 Z M20,-12 L0,0 L20,12 Z"/>';
 const limHalf=t=>Math.max(50,Math.ceil(((t||'').length*7+30)/20)*10);
 const SYM={
@@ -385,12 +395,35 @@ const SYM={
   retencion:{n:'Retención',g:'va',tag:'',bb:[-20,-12,20,12],d:c=>'<path d="M-20,-12 L0,0 L-20,12 Z"/><path fill="'+c+'" d="M20,-12 L0,0 L20,12 Z"/>'},
   ciego:{n:'Ciego / figura 8',g:'va',tag:'',bb:[-7,-28,7,13],d:c=>'<path fill="none" stroke-width="4" d="M0,-11 V12"/><circle cy="-21" r="6" fill="'+c+'"/>'},
 
+  venteo:{n:'Venteo ¾"',g:'pm',tag:'3/4"',fixed:true,side:true,bb:[-9,-43,9,2],d:(c,it,f)=>'<path fill="none" d="M0,0 V-10 M0,-30 V-41"/><path stroke-width="1.6" d="M-7,-10 L0,-20 L7,-10 Z M-7,-30 L0,-20 L7,-30 Z"'+(f?` fill="${f}" stroke="${f}"`:'')+'/><path fill="none" stroke-width="3" d="M-5,-41 H5"/>'},
+  drenaje:{n:'Drenaje ¾"',g:'pm',tag:'3/4"',fixed:true,side:true,bb:[-9,-2,9,43],d:(c,it,f)=>'<path fill="none" d="M0,0 V10 M0,30 V41"/><path stroke-width="1.6" d="M-7,10 L0,20 L7,10 Z M-7,30 L0,20 L7,30 Z"'+(f?` fill="${f}" stroke="${f}"`:'')+'/><path fill="none" stroke-width="3" d="M-5,41 H5"/>'},
   limite:{n:'Límite / conexión',g:'ot',tag:'A U-',inside:true,
     bb:it=>{const h=limHalf(it&&it.tag);return[-h,-13,h,13]},
     d:(c,it)=>{const h=limHalf(it&&it.tag);return `<path d="M${-h},-13 H${h-13} L${h},0 L${h-13},13 H${-h} Z"/>`}},
   instrumento:{n:'Instrumento',g:'ot',tag:'PI',inside:true,bb:[-17,-17,17,17],d:()=>'<circle r="17"/>'}
 };
-const EXTRA=[{k:'text',n:'Texto',g:'ot'},{k:'legend',n:'Leyenda',g:'ot'},{k:'title',n:'Cajetín',g:'ot'}];
+const EXTRA=[{k:'hose_agua',n:'Manguera agua',g:'pm'},{k:'hose_n2',n:'Manguera N₂',g:'pm'},{k:'hose_metal',n:'Manguera metálica',g:'pm'},{k:'text',n:'Texto',g:'ot'},{k:'legend',n:'Leyenda',g:'ot'},{k:'title',n:'Cajetín',g:'ot'}];
+const HOSES={agua:{n:'Manguera de agua',c:'#22B35E'},n2:{n:'Manguera de N₂',c:'#3B82F6'},metal:{n:'Manguera metálica',c:'#9AA5B1',metal:true}};
+const PURGA=['venteo','drenaje'];
+/* Bocas de conexión (coordenadas locales). [x,y] o [x,y,nx,ny] con la dirección hacia fuera. */
+const PORTS={
+  deposito_v:[[0,-55],[0,55],[-30,-20],[-30,20],[30,-20],[30,20]],
+  deposito_h:[[-65,0],[65,0],[-40,-28,0,-1],[0,-28],[40,-28,0,-1],[0,28],[40,28,0,1]],
+  deposito_bota:[[-65,0],[65,0],[-40,-28,0,-1],[0,-28],[40,-28,0,-1],[0,28],[40,28,0,1],[-30,40]],
+  columna:[[0,-110],[0,110],[-28,-60,-1,0],[28,-60,1,0],[-28,0],[28,0],[-28,60,-1,0],[28,60,1,0]],
+  reactor:[[0,-70],[0,70],[-35,0],[35,0]],
+  intercambiador:[[-40,0],[40,0],[0,-24],[0,24]],
+  aero:[[-40,0],[40,0]],
+  horno:[[-50,20],[50,20],[0,70],[0,-90]],
+  compresor:[[-30,0],[30,0]],
+  bomba:[[-20,0],[30,-20,1,0]],
+  tanque:[[-55,10],[55,10],[0,-40],[0,40]],
+  manual:[[-20,0],[20,0]],control:[[-20,0],[20,0]],motor:[[-20,0],[20,0]],retencion:[[-20,0],[20,0]],
+  tresvias:[[-20,0],[20,0],[0,24]],
+  psv:[[0,24],[24,0]],
+  venteo:[[0,-41,0,-1]],drenaje:[[0,41,0,1]]
+};
+const isInline=k=>{const d=SYM[k];return !!d&&((d.g==='va'&&k!=='psv')||d.g==='pm')};
 const bbOf=(kind,it)=>{const b=SYM[kind].bb;return typeof b==='function'?b(it):b};
 
 /* ════════ Estado ════════ */
@@ -453,22 +486,37 @@ function drawSym(it,pal,hit){
   const shut=(ms?ms==='closed':it.closed)&&CLOSABLE.includes(it.kind), fc=ms==='closed'?RED:c;
   let t='';
   if(it.tag){
-    if(d.inside)t=`<text y="0" dy=".36em" text-anchor="middle" class="tg" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${11*s}" fill="${c}">${esc(it.tag)}</text>`;
+    if(d.side)t=`<text x="${it.flip?b[0]-4*s:b[2]+4*s}" y="${(b[1]+b[3])/2+4}" text-anchor="${it.flip?'end':'start'}" class="tg" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${10*s}" fill="${c}" stroke="${pal.paper}" stroke-width="3.5" stroke-linejoin="round" paint-order="stroke">${esc(it.tag)}</text>`;
+    else if(d.inside)t=`<text y="0" dy=".36em" text-anchor="middle" class="tg" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${11*s}" fill="${c}">${esc(it.tag)}</text>`;
     else t=`<text x="${(b[0]+b[2])/2}" y="${b[3]+15*s}" text-anchor="middle" class="tg" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${11.5*s}" fill="${c}" stroke="${pal.paper}" stroke-width="4" stroke-linejoin="round" paint-order="stroke">${esc(it.tag)}</text>`;
   }
   const hr=hit?`<rect x="${bb[0]-3}" y="${bb[1]-3}" width="${bb[2]-bb[0]+6}" height="${bb[3]-bb[1]+6}" fill="transparent" stroke="none"/>`:'';
-  return `<g data-id="${it.id}" transform="translate(${it.x} ${it.y})"><g transform="rotate(${it.rot||0}) scale(${(it.flip?-1:1)*s} ${s})" stroke="${c}" fill="${pal.paper}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${hr}${d.d(c,it)}${shut?`<path d="${BOWD}" fill="${fc}" stroke="${fc}"/>`+(it.kind==='tresvias'?`<path d="M0,0 L-12,24 L12,24 Z" fill="${fc}" stroke="${fc}"/>`:''):''}</g>${t}</g>`;
+  return `<g data-id="${it.id}" transform="translate(${it.x} ${it.y})"><g transform="rotate(${it.rot||0}) scale(${(it.flip?-1:1)*s} ${s})" stroke="${c}" fill="${pal.paper}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${hr}${d.d(c,it,shut&&PURGA.includes(it.kind)?fc:null)}${shut&&!PURGA.includes(it.kind)?`<path d="${BOWD}" fill="${fc}" stroke="${fc}"/>`+(it.kind==='tresvias'?`<path d="M0,0 L-12,24 L12,24 Z" fill="${fc}" stroke="${fc}"/>`:''):''}</g>${t}</g>`;
 }
 function drawText(it,pal){
   return `<text data-id="${it.id}" x="${it.x}" y="${it.y}" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" letter-spacing=".03em" font-size="${it.size||16}" fill="${col(it.fluid,pal)}">${esc(it.text)}</text>`;
 }
+function hoseCtrl(a,b){const L=Math.hypot(b[0]-a[0],b[1]-a[1]);return[(a[0]+b[0])/2,(a[1]+b[1])/2+Math.min(90,L*.3)+8]}
+function hoseMid(it){const q=hoseCtrl(it.a,it.b);return[(it.a[0]+2*q[0]+it.b[0])/4,(it.a[1]+2*q[1]+it.b[1])/4]}
+function drawHose(it,pal,hit){
+  const H=HOSES[it.kind]||HOSES.agua,c=H.c,q=hoseCtrl(it.a,it.b),d=`M${it.a[0]},${it.a[1]} Q${q[0]},${q[1]} ${it.b[0]},${it.b[1]}`,off=MSTATE[it.id]==='off';
+  let s=`<g data-id="${it.id}"${off?' opacity=".28"':''}>`;
+  if(hit)s+=`<path d="${d}" fill="none" stroke="transparent" stroke-width="16" pointer-events="stroke"/>`;
+  if(H.metal)s+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="7.5" stroke-linecap="round" pointer-events="none"/><path d="${d}" fill="none" stroke="${pal.paper}" stroke-width="7.5" stroke-dasharray="1.6 3" opacity=".6" pointer-events="none"/>`;
+  else s+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="6.5" stroke-linecap="round" pointer-events="none"/><path d="${d}" fill="none" stroke="#fff" stroke-width="1.6" opacity=".45" stroke-linecap="round" pointer-events="none"/>`;
+  for(const e of [it.a,it.b])s+=`<rect x="${e[0]-5.5}" y="${e[1]-5.5}" width="11" height="11" rx="2.5" fill="${c}" stroke="${pal.paper}" stroke-width="2" pointer-events="none"/>`;
+  if(it.tag){const m=hoseMid(it),vt=Math.abs(it.b[0]-it.a[0])<Math.abs(it.b[1]-it.a[1]);s+=`<text x="${m[0]+(vt?12:0)}" y="${m[1]+(vt?4:20)}" text-anchor="${vt?'start':'middle'}" font-family="JetBrains Mono,monospace" font-weight="700" font-size="10.5" fill="${c}" stroke="${pal.paper}" stroke-width="3.5" paint-order="stroke">${esc(it.tag)}</text>`}
+  return s+'</g>';
+}
+function usedHoses(){const u=new Set(S.items.filter(i=>i.type==='hose').map(i=>i.kind));return Object.keys(HOSES).filter(k=>u.has(k))}
 function usedFluids(){const u=new Set(S.items.filter(i=>i.type==='line').map(i=>i.fluid||'proc'));return S.fluids.filter(f=>u.has(f.id))}
-function legendSize(){return[200,38+Math.max(1,usedFluids().length)*22]}
+function legendSize(){return[200,38+Math.max(1,usedFluids().length+usedHoses().length)*22]}
 function drawLegend(it,pal){
   const fs=usedFluids(), [w,h]=legendSize();
   let s=`<g data-id="${it.id}" transform="translate(${it.x} ${it.y})"><rect width="${w}" height="${h}" fill="${pal.paper}" stroke="${pal.ink}" stroke-width="1.5"/><path d="M0,28 H${w}" stroke="${pal.ink}" stroke-width="1"/><text x="12" y="19" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="800" letter-spacing=".16em" font-size="13" fill="${pal.ink}">LEYENDA</text>`;
   if(!fs.length)s+=`<text x="12" y="49" font-family="Barlow,sans-serif" font-size="12" fill="${pal.ink}" opacity=".6">Sin líneas todavía</text>`;
   fs.forEach((f,i)=>{const y=46+i*22;s+=`<path d="M12,${y} H48" stroke="${col(f.id,pal)}" stroke-width="3.2" stroke-linecap="round"/><text x="60" y="${y+4.5}" font-family="Barlow,sans-serif" font-weight="500" font-size="13" fill="${pal.ink}">${esc(f.name)}</text>`});
+  usedHoses().forEach((k,j)=>{const y=46+(fs.length+j)*22,H=HOSES[k];s+=`<path d="M12,${y-4} Q30,${y+8} 48,${y-4}" fill="none" stroke="${H.c}" stroke-width="5" stroke-linecap="round"${H.metal?' stroke-dasharray="2.5 1.5"':''}/><text x="60" y="${y+4.5}" font-family="Barlow,sans-serif" font-weight="500" font-size="13" fill="${pal.ink}">${H.n}</text>`});
   return s+'</g>';
 }
 function drawTitle(it,pal){
@@ -510,6 +558,7 @@ function renderItems(pal,hit,man){
     else if(it.type==='legend')s+=drawLegend(it,pal);
     else if(it.type==='title')s+=drawTitle(it,pal);
   }
+  for(const it of S.items)if(it.type==='hose')s+=drawHose(it,pal,hit);
   if(mst)s+=drawManOverlay(man,mst,pal);
   return s;
 }
@@ -538,23 +587,39 @@ function renderOver(){
       const p=it.pts, r=4.5/k;
       for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1];if(a[0]!==b[0]&&a[1]!==b[1])continue;const m=[(a[0]+b[0])/2,(a[1]+b[1])/2];s+=`<path data-h="s:${i}" d="M${m[0]-r*1.3},${m[1]} L${m[0]},${m[1]-r*1.3} L${m[0]+r*1.3},${m[1]} L${m[0]},${m[1]+r*1.3} Z" fill="${P.paper}" stroke="${sc}" stroke-width="${sw}"/>`}
       p.forEach((q,i)=>{s+=`<rect data-h="v:${i}" x="${q[0]-r}" y="${q[1]-r}" width="${2*r}" height="${2*r}" fill="${sc}" stroke="${P.paper}" stroke-width="${sw*.8}"/>`});
+    } else if(it.type==='hose'){
+      const r=5.5/k;s+=`<path d="M${it.a[0]},${it.a[1]} Q${hoseCtrl(it.a,it.b).join(',')} ${it.b[0]},${it.b[1]}" fill="none" stroke="${sc}" stroke-width="${sw}" stroke-dasharray="${5/k} ${4/k}" pointer-events="none"/>`;
+      [it.a,it.b].forEach((q,i)=>{s+=`<rect data-h="he:${i}" x="${q[0]-r}" y="${q[1]-r}" width="${2*r}" height="${2*r}" fill="${sc}" stroke="${P.paper}" stroke-width="${sw*.8}"/>`});
     } else {
       const el=W.querySelector(`[data-id="${it.id}"]`);
       if(el){const b=el.getBBox(), x=it.type==='text'?b.x:it.x+b.x, y=it.type==='text'?b.y:it.y+b.y;s+=`<rect x="${x-6}" y="${y-5}" width="${b.width+12}" height="${b.height+10}" fill="none" stroke="${sc}" stroke-width="${sw}" stroke-dasharray="${5/k} ${4/k}" pointer-events="none"/>`}
     }
   }
   if(drawingL){
-    const pts=[...drawingL.pts,drawingL.cur], c=col(curFluid,P);
+    const pts=[...drawingL.pts,...drawingL.cur], c=col(curFluid,P);
     s+=`<path d="${pathD(pts)}" fill="none" stroke="${c}" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" opacity=".85" pointer-events="none"/>`;
     drawingL.pts.forEach(q=>{s+=`<circle cx="${q[0]}" cy="${q[1]}" r="${3/k}" fill="${c}" pointer-events="none"/>`});
   }
-  if((tool==='line'||tool==='stamp')&&ghostAt){
+  if(drawingH&&hoseCur)s+=`<g opacity=".8" pointer-events="none">${drawHose({id:'_h',kind:hoseKind,a:drawingH.a,b:hoseCur},P,false)}</g>`;
+  if((tool==='line'||tool==='stamp'||tool==='hose')&&ghostAt){
     const g=ghostAt, r=7/k;
     s+=`<path d="M${g[0]-r},${g[1]} H${g[0]+r} M${g[0]},${g[1]-r} V${g[1]+r}" stroke="${sc}" stroke-width="${sw}" pointer-events="none"/>`;
     if(tool==='stamp'&&stamp){
-      if(SYM[stamp]){const tmp={id:'_g',kind:stamp,x:g[0],y:g[1],rot:autoRot(stamp,g),tag:SYM[stamp].inside?SYM[stamp].tag:'',fluid:autoFluid(stamp,g)};s+=`<g opacity=".55" pointer-events="none">${drawSym(tmp,P,false)}</g>`}
+      if(SYM[stamp]){const tmp={id:'_g',kind:stamp,rot:0,tag:SYM[stamp].inside||SYM[stamp].fixed?SYM[stamp].tag:''};const r=snapSym(tmp,ghostRaw||g);tmp.x=r.x;tmp.y=r.y;tmp.rot=r.rot;tmp.fluid=autoFluid(stamp,[r.x,r.y]);if(PURGA.includes(stamp))tmp.closed=true;snapT=r.t;s+=`<g opacity=".55" pointer-events="none">${drawSym(tmp,P,false)}</g>`}
       else s+=`<rect x="${g[0]}" y="${g[1]}" width="${stamp==='title'?340:200}" height="${stamp==='title'?86:60}" fill="none" stroke="${sc}" stroke-dasharray="6 4" stroke-width="${sw}" opacity=".7" pointer-events="none"/>`;
     }
+  }
+  const showPorts=mode==='draw'&&(tool==='line'||tool==='hose'||tool==='stamp'||(drag&&['move','vtx','hend'].includes(drag.t)));
+  if(showPorts){
+    const conn=new Set();for(const o of S.items){if(o.type==='line'){conn.add(o.pts[0].join(','));conn.add(o.pts[o.pts.length-1].join(','))}else if(o.type==='hose'){conn.add(o.a.join(','));conn.add(o.b.join(','))}}
+    for(const o of S.items)if(o.type==='sym'&&!(drag&&o.id===sel&&drag.t==='move'&&false))for(const pt of portsOf(o)){
+      s+=conn.has(pt.p.join(','))?`<circle cx="${pt.p[0]}" cy="${pt.p[1]}" r="${2.8/k}" fill="#22B35E" pointer-events="none"/>`
+        :`<circle cx="${pt.p[0]}" cy="${pt.p[1]}" r="${3.8/k}" fill="${P.paper}" stroke="${sc}" stroke-width="${1.5/k}" opacity=".9" pointer-events="none"/>`;
+    }
+  }
+  if(snapT&&mode==='draw'){
+    const q=snapT.p,cc=snapT.kind==='seg'?'#38BDF8':sc,lbl=snapT.kind==='seg'?'BIFURCAR':snapT.kind==='port'?'CONECTAR':'UNIR';
+    s+=`<circle cx="${q[0]}" cy="${q[1]}" r="${5/k}" fill="${cc}" pointer-events="none"/><circle class="snapring" cx="${q[0]}" cy="${q[1]}" r="${12/k}" fill="none" stroke="${cc}" stroke-width="${2.5/k}" pointer-events="none"/><text x="${q[0]+15/k}" y="${q[1]-13/k}" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${10.5/k}" fill="${cc}" stroke="${P.paper}" stroke-width="${3.5/k}" paint-order="stroke" pointer-events="none">${lbl}</text>`;
   }
   O.innerHTML=s;
 }
@@ -569,11 +634,11 @@ const TOOLS=[
 ];
 function renderTools(){
   $('#tools').innerHTML=TOOLS.map(t=>`<button class="tool${tool===t.k?' on':''}" data-tool="${t.k}" title="${t.n} (${t.key})"><kbd>${t.key}</kbd><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.i}</svg><span>${t.n}</span></button>`).join('');
-  $$('.tile').forEach(t=>t.classList.toggle('on',tool==='stamp'&&t.dataset.kind===stamp));
+  $$('.tile').forEach(t=>t.classList.toggle('on',(tool==='stamp'&&t.dataset.kind===stamp)||(tool==='hose'&&t.dataset.kind==='hose_'+hoseKind)));
   stage.className='stage t-'+tool+(theme==='papel'?' paper':'');
-  const hints={select:'Clic: seleccionar · Arrastrar: mover',line:drawingL?'Clic: codo · Doble clic / Enter: terminar':'Clic para empezar la línea',text:'Clic para escribir',hand:'Arrastra para moverte',stamp:'Clic para colocar · Esc: cancelar'};
+  const hints={select:'Clic: seleccionar · Arrastrar: mover',line:drawingL?'Clic: codo · Doble clic / Enter: terminar · se engancha sola':'Clic para empezar · se engancha a bocas y líneas',hose:drawingH?'Clic en el destino · se engancha sola':'Clic en el origen de la manguera',text:'Clic para escribir',hand:'Arrastra para moverte',stamp:'Clic para colocar · Esc: cancelar'};
   if(mode==='man'){$('#stTool').innerHTML=`<b style="color:#E5484D">MANIOBRA</b> &nbsp;Toca una válvula, línea o equipo para añadir un paso`;return}
-  $('#stTool').innerHTML=`<b>${(TOOLS.find(t=>t.k===tool)||{n:'Colocar'}).n.toUpperCase()}</b> &nbsp;${hints[tool]}`;
+  $('#stTool').innerHTML=`<b>${(TOOLS.find(t=>t.k===tool)||{n:tool==='hose'?'Manguera':'Colocar'}).n.toUpperCase()}</b> &nbsp;${hints[tool]}`;
 }
 function renderFluids(){
   const it=sel&&get(sel), active=it&&it.type==='line'?(it.fluid||'proc'):curFluid;
@@ -585,12 +650,13 @@ function iconFor(kind){
     const inner=SYM[kind].d('currentColor',it)+(SYM[kind].inside?`<text dy=".36em" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="11" fill="currentColor" stroke="none">${it.tag}</text>`:'');
     return `<svg viewBox="${b[0]-pad} ${b[1]-pad} ${w} ${h}" preserveAspectRatio="xMidYMid meet"><g stroke="currentColor" fill="#181D22" stroke-width="${Math.max(2,Math.max(w,h)/34)}" stroke-linejoin="round" stroke-linecap="round">${inner}</g></svg>`;
   }
+  if(kind.startsWith('hose_')){const H=HOSES[kind.slice(5)];return `<svg viewBox="0 0 60 40"><path d="M8,10 Q30,48 52,10" fill="none" stroke="${H.c}" stroke-width="5.5" stroke-linecap="round"/>${H.metal?'<path d="M8,10 Q30,48 52,10" fill="none" stroke="#181D22" stroke-width="5.5" stroke-dasharray="1.5 2.5" opacity=".6"/>':'<path d="M8,10 Q30,48 52,10" fill="none" stroke="#fff" stroke-width="1.3" opacity=".45"/>'}<rect x="3" y="5" width="10" height="10" rx="2" fill="${H.c}"/><rect x="47" y="5" width="10" height="10" rx="2" fill="${H.c}"/></svg>`}
   if(kind==='text')return '<svg viewBox="0 0 40 40"><text x="20" y="29" text-anchor="middle" font-family="Barlow Condensed" font-weight="700" font-size="26" fill="currentColor">Aa</text></svg>';
   if(kind==='legend')return '<svg viewBox="0 0 48 40" fill="none" stroke="currentColor"><rect x="3" y="3" width="42" height="34" stroke-width="1.6"/><path d="M8 14h12" stroke="#22B35E" stroke-width="3"/><path d="M8 22h12" stroke="#3B82F6" stroke-width="3"/><path d="M8 30h12" stroke="#FFC400" stroke-width="3"/><path d="M25 14h14M25 22h14M25 30h14" stroke-width="1.4" opacity=".6"/></svg>';
   return '<svg viewBox="0 0 60 34" fill="none" stroke="currentColor"><rect x="2" y="2" width="56" height="30" stroke-width="1.6"/><path d="M2 21h56M22 21v11M38 21v11" stroke-width="1.1"/><path d="M7 12h28" stroke-width="3"/></svg>';
 }
 function buildPalette(){
-  for(const g of ['eq','va','ot']){
+  for(const g of ['eq','va','pm','ot']){
     const items=Object.entries(SYM).filter(([,d])=>d.g===g).map(([k,d])=>({k,n:d.n})).concat(EXTRA.filter(e=>e.g===g));
     $(`.grid[data-group="${g}"]`).innerHTML=items.map(t=>`<div class="tile" draggable="true" data-kind="${t.k}" title="${t.n}">${iconFor(t.k)}<span>${t.n}</span></div>`).join('');
   }
@@ -622,6 +688,11 @@ function renderInspector(){
     body+=`<div><label>Texto</label><input type="text" data-f="text" value="${esc(it.text)}"></div>`;
     body+=`<div><label>Tamaño</label>${seg('size',[[13,'S'],[16,'M'],[22,'L'],[30,'XL']],it.size||16)}</div>`;
     body+=`<div><label>Color</label>${swatches(it.fluid,'fluid')}</div>`;
+  } else if(it.type==='hose'){
+    title=(HOSES[it.kind]||HOSES.agua).n; code='MNG';
+    body+=`<div><label>Tipo</label>${seg('hkind',[['agua','Agua'],['n2','N₂'],['metal','Metálica']],it.kind)}</div>`;
+    body+=`<div><label>Etiqueta</label><input type="text" data-f="tag" value="${esc(it.tag)}" placeholder="Ej: 3/4&quot; · 15 m"></div>`;
+    body+=`<p style="font-size:12px;color:var(--tx3)">Arrastra los extremos amarillos: se enganchan solos a bocas y purgas.</p>`;
   } else if(it.type==='legend'){title='Leyenda';code='LEY';body+='<p style="font-size:12.5px;color:var(--tx3)">Se rellena sola con los fluidos que usas en las líneas.</p>'}
   else if(it.type==='title'){title='Cajetín';code='CAJ';body+=`<div><label>Nombre del plano</label><input type="text" data-f="docname" value="${esc(S.name)}"></div><div><label>Revisión</label><input type="text" data-f="rev" value="${esc(S.rev||'0')}"></div>`}
   body+=`<div class="row"><button class="btn" data-act="dup">Duplicar</button><button class="btn danger" data-act="del">Borrar</button></div>`;
@@ -655,12 +726,12 @@ function segUnder(p){
   return null;
 }
 function autoRot(kind,p){if(!SYM[kind]||SYM[kind].g!=='va'||kind==='psv')return 0;const h=segUnder(p);return h&&h.vert?90:0}
-function autoFluid(kind,p){if(!SYM[kind]||SYM[kind].g!=='va')return null;const h=segUnder(p);return h&&h.L.fluid&&h.L.fluid!=='proc'?h.L.fluid:null}
+function autoFluid(kind,p){if(!SYM[kind]||(SYM[kind].g!=='va'&&SYM[kind].g!=='pm'))return null;const h=segUnder(p);return h&&h.L.fluid&&h.L.fluid!=='proc'?h.L.fluid:null}
 function inEquipment(p){
-  return S.items.some(it=>{if(it.type!=='sym')return false;const g=SYM[it.kind].g;if(g==='va'||it.kind==='instrumento')return false;const b=rbb(it);return p[0]>=it.x+b[0]&&p[0]<=it.x+b[2]&&p[1]>=it.y+b[1]&&p[1]<=it.y+b[3]});
+  return S.items.some(it=>{if(it.type!=='sym')return false;const g=SYM[it.kind].g;if(g==='va'||g==='pm'||it.kind==='instrumento')return false;const b=rbb(it);return p[0]>=it.x+b[0]&&p[0]<=it.x+b[2]&&p[1]>=it.y+b[1]&&p[1]<=it.y+b[3]});
 }
 function autoTag(kind){
-  const pre=SYM[kind].tag; if(!pre||SYM[kind].inside)return pre||'';
+  const pre=SYM[kind].tag; if(!pre||SYM[kind].inside||SYM[kind].fixed)return pre||'';
   const nums=S.items.filter(i=>i.type==='sym'&&i.tag&&i.tag.startsWith(pre+'-')).map(i=>parseInt(i.tag.slice(pre.length+1))||0);
   return pre+'-'+(nums.length?Math.max(...nums)+1:101);
 }
@@ -670,6 +741,7 @@ function bboxItem(it){
   if(it.type==='text'){const z=it.size||16;return[it.x,it.y-z,it.x+(it.text||'').length*z*.5,it.y+z*.3]}
   if(it.type==='legend'){const[w,h]=legendSize();return[it.x,it.y,it.x+w,it.y+h]}
   if(it.type==='title')return[it.x,it.y,it.x+340,it.y+86];
+  if(it.type==='hose'){const q=hoseCtrl(it.a,it.b);return[Math.min(it.a[0],it.b[0])-8,Math.min(it.a[1],it.b[1])-8,Math.max(it.a[0],it.b[0])+8,Math.max(it.a[1],it.b[1],q[1]-20)+20]}
   return[0,0,0,0];
 }
 function bboxAll(){
@@ -677,20 +749,118 @@ function bboxAll(){
   for(const it of S.items){const c=bboxItem(it);b=[Math.min(b[0],c[0]),Math.min(b[1],c[1]),Math.max(b[2],c[2]),Math.max(b[3],c[3])]}
   return b;
 }
+/* ════════ Imán (enganche tipo lego) ════════ */
+function portsOf(it){
+  if(!it||it.type!=='sym')return[];
+  let L=PORTS[it.kind]; if(it.kind==='limite'){const h=limHalf(it.tag);L=[[-h,0],[h,0]]}
+  if(!L)return[];
+  const s=it.scale||1,f=it.flip?-1:1,r=(((it.rot||0)%360)+360)%360;
+  const rt=(x,y)=>r===90?[-y,x]:r===180?[-x,-y]:r===270?[y,-x]:[x,y];
+  return L.map(q=>{
+    const n0=q.length>2?[q[2],q[3]]:(Math.abs(q[0])>=Math.abs(q[1])?[Math.sign(q[0]),0]:[0,Math.sign(q[1])]);
+    const pp=rt(q[0]*f*s,q[1]*s);return{p:[it.x+pp[0],it.y+pp[1]],n:rt(n0[0]*f,n0[1])};
+  });
+}
+function magnet(p,o={}){
+  const R=18/view.k;let best=null,bd=R;
+  const cons=(q,kind,x)=>{const d=Math.hypot(q[0]-p[0],q[1]-p[1]);if(d<bd){bd=d;best=Object.assign({p:[q[0],q[1]],kind},x)}};
+  for(const it of S.items){
+    if(it.id===o.exclude)continue;
+    if(it.type==='sym')for(const pt of portsOf(it))cons(pt.p,'port',{n:pt.n,id:it.id});
+    else if(it.type==='line'){cons(it.pts[0],'end');cons(it.pts[it.pts.length-1],'end')}
+    else if(it.type==='hose'){cons(it.a,'end');cons(it.b,'end')}
+  }
+  if(best||o.segs===false)return best;
+  for(const L of S.items)if(L.type==='line'&&L.id!==o.exclude){const q=nearestOnLine(L,p);cons([q[0],q[1]],'seg',{vert:q[2],id:L.id})}
+  return best;
+}
+function rotFromNormal(kind,n){
+  const v0=kind==='drenaje'?[0,1]:[0,-1];let best=0,bd=-9;
+  for(const r of[0,90,180,270]){const v=r===90?[-v0[1],v0[0]]:r===180?[-v0[0],-v0[1]]:r===270?[v0[1],-v0[0]]:v0;const d=v[0]*n[0]+v[1]*n[1];if(d>bd){bd=d;best=r}}
+  return best;
+}
+function freeEnds(keys){
+  const r=[];
+  for(const o of S.items){
+    if(o.type==='line'){const li=o.pts.length-1;[0,li].forEach(i=>{if(!keys||!keys.has(o.id+':'+i))r.push(o.pts[i])})}
+    else if(o.type==='hose')['a','b'].forEach(k=>{if(!keys||!keys.has(o.id+':'+k))r.push(o[k])});
+  }
+  return r;
+}
+/* Coloca un símbolo cerca de raw: las válvulas y purgas se montan sobre la línea más cercana (y giran solas);
+   los equipos encajan sus bocas en los extremos libres de líneas y mangueras. */
+function snapSym(it,raw,keys){
+  const R=18/view.k,k=it.kind,g=sp(raw),rot0=it.rot||0;
+  if(isInline(k)){
+    let best=null,bd=R;
+    for(const L of S.items)if(L.type==='line'){const q=nearestOnLine(L,raw),d=Math.hypot(q[0]-raw[0],q[1]-raw[1]);if(d<bd){bd=d;best={p:[q[0],q[1]],kind:'seg',vert:q[2],id:L.id}}}
+    if(PURGA.includes(k))for(const o of S.items)if(o.type==='sym'&&o.id!==it.id&&!isInline(o.kind))for(const pt of portsOf(o)){const d=Math.hypot(pt.p[0]-raw[0],pt.p[1]-raw[1]);if(d<bd){bd=d;best={p:pt.p,kind:'port',n:pt.n,id:o.id}}}
+    if(!best)return{x:g[0],y:g[1],rot:rot0,t:null};
+    let rot=rot0;
+    if(best.kind==='seg'){if(best.vert){if(rot%180===0)rot=90}else if(rot%180!==0)rot=0}
+    else rot=rotFromNormal(k,best.n);
+    return{x:best.p[0],y:best.p[1],rot,t:best};
+  }
+  const tmp=Object.assign({},it,{x:g[0],y:g[1]}),ends=freeEnds(keys);let best=null,bd=R;
+  for(const pt of portsOf(tmp))for(const e of ends){const d=Math.hypot(pt.p[0]-e[0],pt.p[1]-e[1]);if(d<bd){bd=d;best={dx:e[0]-pt.p[0],dy:e[1]-pt.p[1],p:e}}}
+  if(best)return{x:g[0]+best.dx,y:g[1]+best.dy,rot:rot0,t:{p:best.p,kind:'port'}};
+  return{x:g[0],y:g[1],rot:rot0,t:null};
+}
+/* Líneas y mangueras pegadas a las bocas de un equipo: le siguen al moverlo */
+function findGlue(it){
+  const ps=portsOf(it).map(q=>q.p),on=q=>ps.some(pp=>Math.abs(pp[0]-q[0])<.5&&Math.abs(pp[1]-q[1])<.5),out=[];
+  for(const o of S.items){
+    if(o.type==='line'){const li=o.pts.length-1,idxs=[];if(on(o.pts[0]))idxs.push(0);if(li>0&&on(o.pts[li]))idxs.push(li);if(idxs.length)out.push({type:'line',id:o.id,idxs,orig:clone(o.pts)})}
+    else if(o.type==='hose'){const ends=['a','b'].filter(k=>on(o[k]));if(ends.length)out.push({type:'hose',id:o.id,ends,orig:{a:[...o.a],b:[...o.b]}})}
+  }
+  return out;
+}
+function moveEnd(pts,idx,d){
+  const e=pts[idx],ne=[e[0]+d[0],e[1]+d[1]];
+  if(pts.length===2){
+    const o=pts[1-idx];
+    if(ne[0]===o[0]||ne[1]===o[1]){pts[idx]=ne;return pts}
+    let mid;
+    if(e[1]===o[1]){const dir=Math.sign(o[0]-ne[0])||1,mx=snap(ne[0]+dir*Math.min(30,Math.abs(o[0]-ne[0])/2));mid=[[mx,o[1]],[mx,ne[1]]]}else{const dir=Math.sign(o[1]-ne[1])||1,my=snap(ne[1]+dir*Math.min(30,Math.abs(o[1]-ne[1])/2));mid=[[o[0],my],[ne[0],my]]}
+    return idx===1?[o,mid[0],mid[1],ne]:[ne,mid[1],mid[0],o];
+  }
+  const n=pts[idx===0?1:pts.length-2],horiz=e[1]===n[1];
+  pts[idx]=ne; if(horiz)n[1]=ne[1]; else n[0]=ne[0];
+  return pts;
+}
+function applyGlue(glue,d){
+  for(const gl of glue){
+    const o=get(gl.id);if(!o)continue;
+    if(gl.type==='line'){
+      if(gl.idxs.length===2){o.pts=gl.orig.map(q=>[q[0]+d[0],q[1]+d[1]]);continue}
+      let pts=clone(gl.orig);pts=moveEnd(pts,gl.idxs[0]===0?0:pts.length-1,d);o.pts=pts;
+    } else for(const k of gl.ends)o[k]=[gl.orig[k][0]+d[0],gl.orig[k][1]+d[1]];
+  }
+}
+function snapFx(q,m){
+  const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  c.setAttribute('cx',q[0]);c.setAttribute('cy',q[1]);c.setAttribute('r',10/view.k);c.setAttribute('fill','none');
+  c.setAttribute('stroke',m&&m.kind==='seg'?'#38BDF8':P.sel);c.setAttribute('stroke-width',3/view.k);c.setAttribute('class','snapfx');
+  $('#fx').appendChild(c);setTimeout(()=>c.remove(),550);
+  try{navigator.vibrate&&navigator.vibrate(12)}catch(e){}
+}
 function toW(e){const r=svg.getBoundingClientRect();return[(e.clientX-r.left-view.x)/view.k,(e.clientY-r.top-view.y)/view.k]}
 function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),1800)}
 
 /* ════════ Acciones ════════ */
 function setTool(t,k){
   if(drawingL&&t!=='line')finishLine();
+  if(drawingH&&t!=='hose')drawingH=null;
+  snapT=null; if(t==='hose'&&k)hoseKind=k;
   tool=t; stamp=t==='stamp'?k:null; if(t!=='select'&&t!=='stamp'){} renderTools(); renderOver();
 }
 function place(kind,p){
   if(kind==='text'){newText(p);return}
   let it;
-  if(kind==='legend')it={type:'legend',x:p[0],y:p[1]};
-  else if(kind==='title')it={type:'title',x:p[0],y:p[1]};
-  else it={type:'sym',kind,x:p[0],y:p[1],rot:autoRot(kind,p),tag:autoTag(kind),fluid:autoFluid(kind,p)};
+  const g=sp(p);
+  if(kind==='legend')it={type:'legend',x:g[0],y:g[1]};
+  else if(kind==='title')it={type:'title',x:g[0],y:g[1]};
+  else{it={type:'sym',kind,rot:0,tag:autoTag(kind)};const r=snapSym(Object.assign({id:'_n'},it),p);it.x=r.x;it.y=r.y;it.rot=r.rot;it.fluid=autoFluid(kind,[r.x,r.y]);if(PURGA.includes(kind))it.closed=true;if(r.t)snapFx(r.t.p,r.t)}
   it.id=uid(); S.items.push(it); sel=it.id; commit(); renderAll();
 }
 function newText(p){const it={id:uid(),type:'text',x:p[0],y:p[1]+5,text:'',size:16};S.items.push(it);sel=it.id;renderAll();editItem(it,'text')}
@@ -702,7 +872,7 @@ function finishLine(){
 function delSel(){if(!sel)return;S.items=S.items.filter(i=>i.id!==sel);sel=null;commit();renderAll()}
 function dupSel(){
   const it=sel&&get(sel); if(!it)return; const c=clone(it); c.id=uid();
-  if(c.type==='line')c.pts=c.pts.map(p=>[p[0]+20,p[1]+20]); else{c.x+=20;c.y+=20}
+  if(c.type==='line')c.pts=c.pts.map(p=>[p[0]+20,p[1]+20]); else if(c.type==='hose'){c.a=[c.a[0]+20,c.a[1]+20];c.b=[c.b[0]+20,c.b[1]+20]} else{c.x+=20;c.y+=20}
   if(c.type==='sym'&&c.tag&&!SYM[c.kind].inside&&SYM[c.kind].tag)c.tag=autoTag(c.kind);
   S.items.push(c); sel=c.id; commit(); renderAll();
 }
@@ -741,6 +911,20 @@ function zoomAt(f,cx,cy){
 }
 
 /* ════════ Puntero ════════ */
+let drawingH=null, hoseKind='agua', hoseCur=null, snapT=null, ghostRaw=null;
+function lineCursor(p,alt){
+  const g=sp(p),l=drawingL.pts[drawingL.pts.length-1];
+  if(alt){drawingL.cur=[g];snapT=null;return}
+  const m=magnet(p);snapT=m;
+  if(m){
+    const t=m.p;
+    if(eq(t,l)){drawingL.cur=[t];snapT=null;return}
+    if(t[0]===l[0]||t[1]===l[1]){drawingL.cur=[t];return}
+    const sideIn=m.n?Math.abs(m.n[0])>.5:false;
+    drawingL.cur=[sideIn?[l[0],t[1]]:[t[0],l[1]],t];return;
+  }
+  drawingL.cur=[Math.abs(g[0]-l[0])>=Math.abs(g[1]-l[1])?[g[0],l[1]]:[l[0],g[1]]];
+}
 svg.addEventListener('pointerdown',e=>{
   if(editing)finishEdit();
   const p=toW(e), g=sp(p);
@@ -749,20 +933,30 @@ svg.addEventListener('pointerdown',e=>{
   if(mode==='man'){
     const mk=e.target.closest('[data-step]'); if(mk){closePop();flashStep(mk.dataset.step);return}
     const node=e.target.closest('[data-id]'), it=node&&get(node.dataset.id);
-    if(it&&(it.type==='sym'||it.type==='line')){openPop(it,p,e);return}
+    if(it&&(it.type==='sym'||it.type==='line'||it.type==='hose')){openPop(it,p,e);return}
     closePop(); drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y}; return;
   }
   if(tool==='line'){
-    if(!drawingL){drawingL={pts:[g],cur:g};renderTools()}
+    if(!drawingL){const m=e.altKey?null:magnet(p),q=m?m.p:g;drawingL={pts:[q],cur:[q]};if(m)snapFx(q,m);snapT=null;renderTools()}
     else{
-      const last=drawingL.pts[drawingL.pts.length-1], q=drawingL.cur;
-      if(eq(q,last)){finishLine();return}
-      drawingL.pts.push(q);
-      if(segUnder(q)||inEquipment(q)){finishLine();return}
+      lineCursor(p,e.altKey);
+      const last=drawingL.pts[drawingL.pts.length-1],cur=drawingL.cur;
+      if(cur.length===1&&eq(cur[0],last)){finishLine();return}
+      drawingL.pts.push(...cur.map(q=>[q[0],q[1]]));
+      const end=drawingL.pts[drawingL.pts.length-1];
+      if(snapT){snapFx(end,snapT);snapT=null;finishLine();return}
+      if(inEquipment(end)){finishLine();return}
+      drawingL.cur=[end];
     }
     renderCanvas();return;
   }
-  if(tool==='stamp'){place(stamp,g);if(!e.shiftKey)setTool('select');return}
+  if(tool==='hose'){
+    const m=magnet(p),q=m?m.p:g; if(m)snapFx(q,m);
+    if(!drawingH){drawingH={a:q};hoseCur=q;renderTools();renderOver();return}
+    if(!eq(q,drawingH.a)){const it={id:uid(),type:'hose',kind:hoseKind,a:drawingH.a,b:q,tag:''};S.items.push(it);sel=it.id;commit()}
+    drawingH=null;setTool('select');renderAll();return;
+  }
+  if(tool==='stamp'){place(stamp,p);if(!e.shiftKey)setTool('select');return}
   if(tool==='text'){newText(g);setTool('select');return}
   // seleccionar
   const now=Date.now(), h=e.target.closest('[data-h]'), node=e.target.closest('[data-id]'), id=node&&node.dataset.id;
@@ -776,6 +970,7 @@ svg.addEventListener('pointerdown',e=>{
   }
   if(h&&sel){
     const it=get(sel),[kind,si]=h.dataset.h.split(':');let i=+si;
+    if(kind==='he'){drag={t:'hend',end:i?'b':'a',moved:false};return}
     if(kind==='v'){drag={t:'vtx',i,orig:clone(it.pts)};return}
     let pts=clone(it.pts);const a=pts[i],b=pts[i+1],horiz=a[1]===b[1];
     if(i===0){pts.unshift([pts[0][0],pts[0][1]]);i=1}
@@ -784,7 +979,8 @@ svg.addEventListener('pointerdown',e=>{
   }
   if(id){
     if(sel!==id){sel=id;renderAll()}
-    drag={t:'move',p0:p,orig:clone(get(id)),moved:false};return;
+    const it=get(id),glue=it.type==='sym'&&!isInline(it.kind)?findGlue(it):[];
+    drag={t:'move',p0:p,orig:clone(it),moved:false,glue,keys:new Set(glue.flatMap(gl=>gl.type==='line'?gl.idxs.map(i=>gl.id+':'+i):gl.ends.map(k=>gl.id+':'+k)))};return;
   }
   if(sel){sel=null;renderAll()}
   drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};
@@ -796,10 +992,24 @@ svg.addEventListener('pointermove',e=>{
     if(drag.t==='pan'){view.x=drag.vx+e.clientX-drag.sx;view.y=drag.vy+e.clientY-drag.sy;applyView();return}
     const it=get(sel); if(!it)return;
     if(drag.t==='move'){
-      const dx=snap(p[0]-drag.p0[0]),dy=snap(p[1]-drag.p0[1]);
-      if(dx||dy)drag.moved=true;
-      if(it.type==='line')it.pts=drag.orig.pts.map(q=>[q[0]+dx,q[1]+dy]);else{it.x=drag.orig.x+dx;it.y=drag.orig.y+dy}
-    } else if(drag.t==='vtx'){it.pts=clone(drag.orig);it.pts[drag.i]=g;drag.moved=true}
+      if(it.type==='sym'){
+        const r=e.altKey?{x:snap(drag.orig.x+p[0]-drag.p0[0]),y:snap(drag.orig.y+p[1]-drag.p0[1]),rot:drag.orig.rot||0,t:null}
+          :snapSym(drag.orig,[drag.orig.x+p[0]-drag.p0[0],drag.orig.y+p[1]-drag.p0[1]],drag.keys);
+        it.x=r.x;it.y=r.y;it.rot=r.rot;snapT=r.t;
+        if(r.x!==drag.orig.x||r.y!==drag.orig.y||r.rot!==(drag.orig.rot||0))drag.moved=true;
+        applyGlue(drag.glue,[it.x-drag.orig.x,it.y-drag.orig.y]);
+      } else {
+        const dx=snap(p[0]-drag.p0[0]),dy=snap(p[1]-drag.p0[1]);
+        if(dx||dy)drag.moved=true;
+        if(it.type==='line')it.pts=drag.orig.pts.map(q=>[q[0]+dx,q[1]+dy]);
+        else if(it.type==='hose'){it.a=[drag.orig.a[0]+dx,drag.orig.a[1]+dy];it.b=[drag.orig.b[0]+dx,drag.orig.b[1]+dy]}
+        else{it.x=drag.orig.x+dx;it.y=drag.orig.y+dy}
+      }
+    } else if(drag.t==='vtx'){
+      const end=drag.i===0||drag.i===drag.orig.length-1,m=end&&!e.altKey?magnet(p,{exclude:it.id}):null;
+      snapT=m;it.pts=clone(drag.orig);it.pts[drag.i]=m?m.p:g;drag.moved=true;
+    }
+    else if(drag.t==='hend'){const m=e.altKey?null:magnet(p,{exclude:it.id});snapT=m;it[drag.end]=m?m.p:g;drag.moved=true}
     else if(drag.t==='seg'){
       const pts=clone(drag.orig),i=drag.i;
       if(drag.horiz){const d=snap(p[1]-drag.p0[1]);pts[i][1]+=d;pts[i+1][1]+=d}else{const d=snap(p[0]-drag.p0[0]);pts[i][0]+=d;pts[i+1][0]+=d}
@@ -808,15 +1018,19 @@ svg.addEventListener('pointermove',e=>{
     renderCanvas();return;
   }
   if(tool==='line'){
-    ghostAt=g;
-    if(drawingL){const l=drawingL.pts[drawingL.pts.length-1];drawingL.cur=e.altKey?g:(Math.abs(g[0]-l[0])>=Math.abs(g[1]-l[1])?[g[0],l[1]]:[l[0],g[1]]);ghostAt=drawingL.cur}
+    if(drawingL){lineCursor(p,e.altKey);ghostAt=drawingL.cur[drawingL.cur.length-1]}
+    else{const m=e.altKey?null:magnet(p);snapT=m;ghostAt=m?m.p:g}
     renderOver();
-  } else if(tool==='stamp'){ghostAt=g;renderOver()}
+  } else if(tool==='hose'){const m=e.altKey?null:magnet(p);snapT=m;hoseCur=m?m.p:g;ghostAt=hoseCur;renderOver()}
+  else if(tool==='stamp'){ghostAt=g;ghostRaw=p;renderOver()}
 });
 function endDrag(){
   if(!drag)return; const d=drag; drag=null; stage.classList.remove('panning');
   if(d.t==='seg'||d.t==='vtx'){const it=get(sel);if(it)it.pts=simplify(it.pts)}
-  if(d.t!=='pan'&&(d.moved||d.t==='seg')){commit();renderAll()}
+  if(d.t==='move'&&d.glue)for(const gl of d.glue)if(gl.type==='line'){const L=get(gl.id);if(L)L.pts=simplify(L.pts)}
+  if(snapT&&d.moved)snapFx(snapT.p,snapT);
+  snapT=null;
+  if(d.t!=='pan'&&(d.moved||d.t==='seg')){commit();renderAll()}else renderOver();
 }
 svg.addEventListener('pointerup',endDrag);
 svg.addEventListener('pointercancel',endDrag);
@@ -831,9 +1045,9 @@ svg.addEventListener('wheel',e=>{
 /* arrastrar desde la paleta */
 document.addEventListener('dragstart',e=>{const t=e.target.closest&&e.target.closest('.tile');if(t){e.dataTransfer.setData('text/plain',t.dataset.kind);e.dataTransfer.effectAllowed='copy'}});
 stage.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy'});
-stage.addEventListener('drop',e=>{e.preventDefault();if(mode!=='draw')return;const k=e.dataTransfer.getData('text/plain');if(k&&(SYM[k]||EXTRA.some(x=>x.k===k))){if(drawingL)finishLine();place(k,sp(toW(e)));setTool('select')}});
+stage.addEventListener('drop',e=>{e.preventDefault();if(mode!=='draw')return;const k=e.dataTransfer.getData('text/plain');if(k&&k.startsWith('hose_')){setTool('hose',k.slice(5));return}if(k&&(SYM[k]||EXTRA.some(x=>x.k===k))){if(drawingL)finishLine();place(k,toW(e));setTool('select')}});
 document.addEventListener('click',e=>{
-  const t=e.target.closest('.tile'); if(t){const k=t.dataset.kind;if(tool==='stamp'&&stamp===k)setTool('select');else setTool('stamp',k);return}
+  const t=e.target.closest('.tile'); if(t){const k=t.dataset.kind;if(k.startsWith('hose_')){if(tool==='hose'&&hoseKind===k.slice(5))setTool('select');else setTool('hose',k.slice(5));return}if(tool==='stamp'&&stamp===k)setTool('select');else setTool('stamp',k);return}
   const tb=e.target.closest('[data-tool]'); if(tb){setTool(tb.dataset.tool);return}
   const fb=e.target.closest('[data-fluid]'); if(fb){setFluid(fb.dataset.fluid);return}
 });
@@ -847,7 +1061,7 @@ $('#insp').addEventListener('click',e=>{
   if(a==='del')return delSel(); if(a==='dup')return dupSel();
   if(a==='rot')rotSel(); else if(a==='flip')flipSel();
   else if(a==='scale')it.scale=+v; else if(a==='size')it.size=+v;
-  else if(a==='dash')it.dash=v==='1'; else if(a==='closed')it.closed=v==='1'; else if(a==='weight')it.weight=v; else if(a==='arrow')it.arrow=v==='1';
+  else if(a==='dash')it.dash=v==='1'; else if(a==='closed')it.closed=v==='1'; else if(a==='hkind'){it.kind=v;hoseKind=v} else if(a==='weight')it.weight=v; else if(a==='arrow')it.arrow=v==='1';
   else if(a==='rev')it.pts.reverse();
   commit(); renderAll();
 });
@@ -876,7 +1090,7 @@ document.addEventListener('keydown',e=>{
     return;
   }
   if(e.key===' '){spaceDown=true;stage.classList.add('panning');e.preventDefault();return}
-  if(e.key==='Escape'){if(drawingL){finishLine();return}if(tool!=='select'){setTool('select');return}if(sel){sel=null;renderAll()}return}
+  if(e.key==='Escape'){if(drawingL){finishLine();return}if(drawingH){setTool('select');return}if(tool!=='select'){setTool('select');return}if(sel){sel=null;renderAll()}return}
   if(e.key==='Enter'&&drawingL){finishLine();return}
   if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();delSel();return}
   if(k==='v')setTool('select'); else if(k==='l')setTool('line'); else if(k==='t')setTool('text'); else if(k==='h')setTool('hand');
@@ -886,7 +1100,7 @@ document.addEventListener('keydown',e=>{
   else if(/^[1-9]$/.test(k)&&S.fluids[+k-1])setFluid(S.fluids[+k-1].id);
   else if(e.key.startsWith('Arrow')&&sel){
     e.preventDefault();const it=get(sel),d=GRID*(e.shiftKey?5:1),dx=e.key==='ArrowLeft'?-d:e.key==='ArrowRight'?d:0,dy=e.key==='ArrowUp'?-d:e.key==='ArrowDown'?d:0;
-    if(it.type==='line')it.pts=it.pts.map(q=>[q[0]+dx,q[1]+dy]);else{it.x+=dx;it.y+=dy}commit();renderCanvas();
+    if(it.type==='line')it.pts=it.pts.map(q=>[q[0]+dx,q[1]+dy]);else if(it.type==='hose'){it.a=[it.a[0]+dx,it.a[1]+dy];it.b=[it.b[0]+dx,it.b[1]+dy]}else{it.x+=dx;it.y+=dy}commit();renderCanvas();
   }
 });
 document.addEventListener('keyup',e=>{if(e.key===' '){spaceDown=false;stage.classList.remove('panning')}});
@@ -950,6 +1164,8 @@ const ACTS={
   ciego_poner:{n:'Instalar ciego',inv:'ciego_quitar',k:RED},
   ciego_quitar:{n:'Retirar ciego',inv:'ciego_poner',k:'#22B35E'},
   despresurizar:{n:'Despresurizar a antorcha',k:'#FFC400'},
+  conectar:{n:'Conectar manguera',inv:'desconectar',st:'on',k:'#3B82F6'},
+  desconectar:{n:'Desconectar y retirar manguera',inv:'conectar',st:'off',k:'#9AA5B1'},
   drenar:{n:'Drenar a sistema cerrado',k:'#A16207'},
   purgar:{n:'Purgar con N₂',k:'#3B82F6'},
   vaporizar:{n:'Vaporizar',k:'#F97316'},
@@ -962,6 +1178,8 @@ function M(){if(!S.manis||!S.manis.length)return null;return S.manis[Math.min(S.
 function manCtx(){const m=mode==='man'&&M();return m?{m,phase}:null}
 function newMan(){if(!S.manis)S.manis=[];const m={id:uid(),title:'Nueva maniobra',permit:'',by:'',steps:[]};S.manis.push(m);S.manIdx=S.manis.length-1;phase='a';return m}
 function actsFor(it){
+  if(it.type==='hose')return['conectar','desconectar','nota'];
+  if(it.type==='sym'&&SYM[it.kind].g==='pm')return['abrir','cerrar','comprobar','nota'];
   if(it.type==='line')return['ciego_poner','ciego_quitar','despresurizar','drenar','purgar','vaporizar','nota'];
   const k=it.kind,g=SYM[k].g;
   if(k==='ciego')return['ciego_poner','ciego_quitar','nota'];
@@ -974,7 +1192,8 @@ function actsFor(it){
 }
 function targetLabel(s){
   if(!s.target)return'';const it=get(s.target);if(!it)return'(elemento borrado)';
-  if(it.type==='sym')return it.tag||SYM[it.kind].n;
+  if(it.type==='hose')return(HOSES[it.kind]||HOSES.agua).n+(it.tag?' · '+it.tag:'');
+  if(it.type==='sym')return SYM[it.kind].fixed?SYM[it.kind].n:(it.tag||SYM[it.kind].n);
   if(it.type==='line')return'Línea de '+fl(it.fluid).name.toLowerCase();
   return'';
 }
@@ -1000,6 +1219,7 @@ function anchorOf(s){
   if(!s.target)return null;const it=get(s.target);if(!it)return null;
   if(s.x!=null)return[s.x+22,s.y-22];
   if(it.type==='sym'){const b=rbb(it);return[it.x+b[2]+10,it.y+b[1]-8]}
+  if(it.type==='hose'){const m=hoseMid(it);return[m[0]+16,m[1]-8]}
   return null;
 }
 function drawManOverlay(man,ms,pal){
@@ -1164,6 +1384,9 @@ function sample(){
   L([[900,468],[900,540],[1280-limHalf(frac),540]],'proc');
   L([[930,540],[930,600],[1150,600],[1150,540]],'proc',{arrow:false}); const bp=Y('manual',1040,600,'V-101C',{closed:true});
   L([[870,480],[870,650],[1280-limHalf(agua),650]],'agua');
+  const dr=Y('drenaje',900,510,'3/4"',{closed:true,rot:270}), vt=Y('venteo',1080,540,'3/4"',{closed:true});
+  const toma='TOMA N₂'; Y('limite',700,720,toma,{fluid:'n2'});
+  const hs={id:uid(),type:'hose',kind:'n2',a:[700+limHalf(toma),720],b:[941,510],tag:'3/4" · 15 m'}; items.push(hs);
   L([[500+limHalf(n2),140],[670,140],[670,210]],'n2');
   L([[420+limHalf(fg),460],[560,460],[560,390]],'fg');
   items.push({id:uid(),type:'legend',x:100,y:520});
@@ -1171,7 +1394,7 @@ function sample(){
   const man={id:uid(),title:'Desmontar LV-101 para revisión',permit:'PT-0481',by:'',steps:[]};
   const st=(t,act,note)=>man.steps.push({id:uid(),phase:'a',target:t&&t.id,act,note:note||'',done:false});
   st(bp,'abrir','Abrir despacio vigilando el nivel de D-101'); st(lv,'cerrar','Pasar a manual desde consola y cerrar');
-  st(b1,'consignar'); st(b2,'consignar'); st(lv,'drenar','Por la purga del cuerpo de la válvula'); st(lv,'comprobar');
+  st(b1,'consignar'); st(b2,'consignar'); st(dr,'abrir','Drenar a sistema cerrado hasta que no salga producto'); st(vt,'abrir','Ventear a antorcha'); st({id:hs.id},'conectar','Barrer con N₂ hasta explosividad 0 %'); st(lv,'comprobar');
   st(null,'nota','Entregar a mantenimiento con el permiso firmado');
   man.steps=man.steps.concat(buildReturn(man.steps));
   return {name:'U-300 · Hidrodesulfuración',rev:'0',fluids:clone(DEFAULT_FLUIDS),items,manis:[man],manIdx:0};

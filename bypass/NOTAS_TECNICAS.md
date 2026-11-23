@@ -35,11 +35,18 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
   - `manState()` calcula cómo queda el plano tras los pasos: válvulas cerradas en rojo, ciegos en las líneas y candados. Lo dibuja `drawManOverlay()`, junto con los números de paso. El dibujo original no se modifica.
   - `buildReturn()` genera la vuelta a servicio: recorre el aislamiento al revés con las acciones inversas.
   - `openSheet()` monta la hoja de maniobra A4. Se imprime con `window.print()` y unos estilos `@media print`.
+- **Purgas ¾"** (`venteo`, `drenaje`, grupo `pm`): una válvula pequeña con su tramo y tapón. Se colocan cerradas por defecto. Se montan solas sobre una línea o en una boca de equipo, y su extremo es una boca donde se engancha una manguera.
+- **Mangueras** (`type:'hose'`, `{kind:'agua'|'n2'|'metal', a, b, tag}`): se dibujan como una curva que cuelga. En modo maniobra admiten «Conectar» y «Desconectar»; desconectada se ve en transparente.
+- **Imán (enganche tipo lego)**:
+  - `PORTS` define las bocas de cada símbolo y `portsOf()` las pasa a coordenadas del plano, teniendo en cuenta giro, espejo y escala.
+  - `magnet()` busca, por este orden: bocas, extremos de línea o manguera y, si no hay nada, un punto sobre una línea (bifurcación).
+  - `snapSym()` monta las válvulas y purgas sobre la línea y las gira; en los equipos, encaja sus bocas en los extremos libres.
+  - `findGlue()` y `applyGlue()` hacen que, al mover un equipo, las líneas y mangueras conectadas le sigan, manteniendo los ángulos rectos con codos automáticos (`moveEnd()`).
+  - Con `Alt` se desactiva el imán.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
 ## Pendiente o ideas
 
-- Conexión magnética a las bocas de los equipos.
 - Selección múltiple.
 - Exportar a PDF en A3.
 - Más símbolos.
