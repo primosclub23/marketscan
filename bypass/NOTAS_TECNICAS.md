@@ -50,6 +50,12 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
   - Una línea que sale de otra hereda el flujo si su punto de partida lo tiene.
   - En modo maniobra usa el estado de la maniobra; en modo dibujo, el de las válvulas del plano.
   - Las mangueras desconectadas no se animan. No sale en las exportaciones.
+- **Modo animación** (tercer botón de modo, `mode==='anim'`):
+  - Las tuberías con flujo se dibujan con brillo (`filter #glow`) y partículas o corriente en movimiento (`fluidPath()`). Lo que no tiene flujo se ve apagado.
+  - Velocidad con la variable CSS `--fd`; pausa con la tecla `P`.
+  - **Simulador**: `SIM` guarda las válvulas, purgas, mangueras, ciegos y PSV que se abren o cierran tocándolos. No modifica el plano.
+  - Estado de partida (`animBase`): las válvulas del plano o la maniobra activa (aislamiento).
+  - Las purgas abiertas sobre una línea con flujo muestran la descarga. La PSV corta el flujo a antorcha salvo que esté disparada.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
 ## Pendiente o ideas

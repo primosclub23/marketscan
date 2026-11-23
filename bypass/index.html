@@ -147,8 +147,28 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);opacity:0;transition:.25s;background:var(--hz);color:#111;font-family:var(--cond);font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:9px 16px;border-radius:4px;z-index:30;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%)}
 
+/* ── Modo animación ── */
+.app.anim .hazard{background:repeating-linear-gradient(-45deg,#38BDF8 0 8px,#101316 8px 16px)}
+.modetg button[data-mode=anim].on{background:#38BDF8;color:#0C0F12}
+#asideAnim{display:none}.app.anim #asideDraw{display:none}.app.anim #asideAnim{display:block}
+.app.anim .flowbtn{display:none}
+.stage.anim #cv [data-id]{cursor:pointer}
+.stage{--fd:.9s}
+.flow.f54{animation-name:flowMove54;animation-duration:calc(var(--fd) * 1.25)}
+.flow.f70{animation-name:flowMove70;animation-duration:calc(var(--fd) * 1.8)}
+@keyframes flowMove54{to{stroke-dashoffset:-54}}
+@keyframes flowMove70{to{stroke-dashoffset:-70}}
+.puff{transform-box:fill-box;transform-origin:center;animation:puff calc(var(--fd) * 1.3) ease-out infinite}
+.puff.d2{animation-delay:calc(var(--fd) * -.65)}
+@keyframes puff{0%{transform:scale(.4);opacity:.9}100%{transform:scale(2.6);opacity:0}}
+.stage.paused .flow,.stage.paused .puff{animation-play-state:paused}
+.astat{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.astat div{background:var(--ui3);border:1px solid var(--line);border-radius:5px;padding:8px 10px}
+.astat b{display:block;font-family:var(--mono);font-size:18px;color:#38BDF8}
+.astat span{font-family:var(--cond);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3)}
+.anote{font-size:12.5px;color:var(--tx2);line-height:1.45;margin-bottom:8px}
 /* ── Flujo animado ── */
-.flow{animation:flowMove .9s linear infinite}
+.flow{animation:flowMove var(--fd) linear infinite}
 @keyframes flowMove{to{stroke-dashoffset:-36}}
 .flowbtn{position:absolute;right:150px;bottom:12px;height:34px;display:flex;align-items:center;gap:7px;padding:0 12px;background:rgba(12,15,18,.86);border:1px solid var(--line);border-radius:4px;font-family:var(--cond);font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx2)}
 .flowbtn:hover{color:var(--tx);border-color:var(--line2)}
@@ -264,7 +284,7 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
       </div>
       <div class="word">BYPASS<small>PLANOS DE OPERACIÓN</small></div>
     </div>
-    <div class="modetg" title="Modo"><button data-mode="draw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 18h7V6h11"/></svg>Dibujo</button><button data-mode="man"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="1.5"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>Maniobra</button></div>
+    <div class="modetg" title="Modo"><button data-mode="draw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 18h7V6h11"/></svg>Dibujo</button><button data-mode="man"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="5" y="11" width="14" height="10" rx="1.5"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>Maniobra</button><button data-mode="anim"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg>Animación</button></div>
     <div class="docname">
       <span class="code">PFD</span>
       <input id="docName" type="text" spellcheck="false" aria-label="Nombre del plano">
@@ -322,10 +342,12 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
     </div>
    </div>
    <div id="asideMan"></div>
+   <div id="asideAnim"></div>
   </aside>
 
   <main class="stage" id="stage">
     <svg id="cv" xmlns="http://www.w3.org/2000/svg">
+      <defs><filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="4"/></filter></defs>
       <g id="view"><g id="world"></g><g id="over"></g><g id="fx"></g></g>
     </svg>
     <div class="hint" id="hint" hidden>
@@ -592,6 +614,11 @@ function flowIntervals(lines,mst){
   for(const it of S.items){
     if(it.type!=='sym')continue;
     const k=it.kind,ms=MSTATE[it.id];
+    if(k==='psv'){ // PSV: sin flujo a antorcha salvo que esté disparada
+      if(ms==='open')continue;const out=portsOf(it)[1];
+      if(out)for(const o of L.values()){const d=distAlong(o.ln.pts,out.p);if(d>=0)o.kills.push(d)}
+      continue;
+    }
     const shut=k==='ciego'?ms==='closed':(CLOSABLE.includes(k)&&!PURGA.includes(k)&&(ms?ms==='closed':!!it.closed));
     if(!shut)continue;
     for(const o of L.values()){const d=distAlong(o.ln.pts,[it.x,it.y]);if(d>=0)o.kills.push(d)}
@@ -626,12 +653,104 @@ function drawFlow(lines,pal,mst){
   }
   return s;
 }
+/* ════════ Modo animación ════════
+   Simulador: tocar una válvula la abre o la cierra solo aquí (SIM), sin tocar el plano.
+   Estado de partida: las válvulas del plano o la maniobra (aislamiento). */
+let SIM={}, animBase='plano', animPaused=false, animSpeed='n', animStyle='part', lastFI=null;
+function animState(){
+  const m=animBase==='man'&&M(), base=m?manState(m,'a'):{st:{},locks:new Set(),blinds:[]}, st=Object.assign({},base.st);
+  for(const it of S.items){
+    if(it.type==='sym'&&CLOSABLE.includes(it.kind)){if(SIM[it.id])st[it.id]=SIM[it.id];else if(!st[it.id])st[it.id]=it.closed?'closed':'open'}
+    else if(it.type==='sym'&&(it.kind==='ciego'||it.kind==='psv')&&SIM[it.id])st[it.id]=SIM[it.id];
+    else if(it.type==='hose'&&SIM[it.id])st[it.id]=SIM[it.id];
+  }
+  return{st,locks:base.locks,blinds:base.blinds};
+}
+function lighten(c,a){
+  if(!/^#[0-9a-f]{6}$/i.test(c))return c;
+  const n=parseInt(c.slice(1),16),f=v=>Math.round(v+(255-v)*a);
+  return `rgb(${f(n>>16)},${f(n>>8&255)},${f(n&255)})`;
+}
+function fluidPath(d,c,w){
+  const lc=lighten(c,.62);
+  let s=`<path d="${d}" fill="none" stroke="${c}" stroke-width="${w+10}" stroke-opacity=".38" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>`;
+  s+=`<path d="${d}" fill="none" stroke="${c}" stroke-width="${w+.6}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  if(animStyle==='part'){
+    s+=`<path class="flow" d="${d}" fill="none" stroke="${lc}" stroke-width="${w+2.8}" stroke-linecap="round" stroke-dasharray="0.01 18"/>`;
+    s+=`<path class="flow f54" d="${d}" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="${Math.max(1.4,w*.55)}" stroke-linecap="round" stroke-dasharray="0.01 27"/>`;
+  } else {
+    s+=`<path class="flow" d="${d}" fill="none" stroke="${lc}" stroke-width="${w}" stroke-linecap="round" stroke-dasharray="14 22" stroke-opacity=".95"/>`;
+    s+=`<path class="flow f70" d="${d}" fill="none" stroke="#fff" stroke-opacity=".4" stroke-width="${Math.max(1,w*.45)}" stroke-linecap="round" stroke-dasharray="30 40"/>`;
+  }
+  return `<g pointer-events="none">${s}</g>`;
+}
+function drawFlowFancy(FI,pal){
+  let s='';
+  for(const o of FI.values()){
+    const c=col(o.ln.fluid,pal),w=o.ln.weight==='b'?4.5:2.6;
+    for(const[a,b]of o.iv){if(b-a<3)continue;const p=subPath(o.ln.pts,a,b);if(p.length>1)s+=fluidPath(pathD(p),c,w)}
+  }
+  return s;
+}
+function liveAtPoint(FI,q){for(const o of FI.values()){const d=distAlong(o.ln.pts,q);if(d>=0&&o.iv.some(([a,b])=>d>=a-.6&&d<=b+.6))return o}return null}
+function drawAnimExtras(FI,pal){
+  let s='';
+  for(const h of S.items)if(h.type==='hose'&&MSTATE[h.id]!=='off'){
+    const q=hoseCtrl(h.a,h.b);s+=fluidPath(`M${h.a[0]},${h.a[1]} Q${q[0]},${q[1]} ${h.b[0]},${h.b[1]}`,(HOSES[h.kind]||HOSES.agua).c,3.5);
+  }
+  // purgas abiertas sobre una línea con flujo: descargan
+  for(const it of S.items){
+    if(it.type!=='sym'||!PURGA.includes(it.kind)||MSTATE[it.id]!=='open')continue;
+    const o=liveAtPoint(FI,[it.x,it.y]);if(!o)continue;
+    const pt=portsOf(it)[0],e=[pt.p[0]+pt.n[0]*12,pt.p[1]+pt.n[1]*12],c=col(o.ln.fluid,pal),lc=lighten(c,.6);
+    s+=fluidPath(`M${it.x},${it.y} L${pt.p[0]},${pt.p[1]} L${e[0]},${e[1]}`,c,2);
+    s+=`<g pointer-events="none"><circle class="puff" cx="${e[0]}" cy="${e[1]}" r="5" fill="${lc}"/><circle class="puff d2" cx="${e[0]}" cy="${e[1]}" r="5" fill="${lc}"/></g>`;
+  }
+  return s;
+}
+function applySpeed(){stage.style.setProperty('--fd',{l:'1.6s',n:'.9s',r:'.45s'}[animSpeed]);stage.classList.toggle('paused',animPaused)}
+function renderAnim(){
+  const box=$('#asideAnim');if(mode!=='anim'){box.innerHTML='';return}
+  let tot=0,live=0,cl=0;
+  if(lastFI)for(const o of lastFI.values()){tot+=o.len;for(const[a,b]of o.iv)live+=b-a}
+  for(const id in MSTATE)if(MSTATE[id]==='closed')cl++;
+  const m=M();
+  box.innerHTML=`<section class="sec mf"><div class="sh"><span class="n">01</span><h3>Animación</h3></div>
+  <button class="btn ${animPaused?'pri':'sm'} wide" data-aact="pause">${animPaused?'▶ Reanudar':'❚❚ Pausa'}</button>
+  <label>Velocidad</label>${seg('speed',[['l','Lenta'],['n','Normal'],['r','Rápida']],animSpeed).replace(/data-act=/g,'data-aact=')}
+  <label>Estilo</label>${seg('style',[['part','Partículas'],['corr','Corriente']],animStyle).replace(/data-act=/g,'data-aact=')}
+  </section>
+  <section class="sec mf"><div class="sh"><span class="n">02</span><h3>Partir de</h3></div>
+  ${seg('base',[['plano','El plano'],['man','La maniobra']],animBase).replace(/data-act=/g,'data-aact=')}
+  <p class="anote" style="margin-top:8px">${animBase==='man'?(m?`Unidad aislada según «${esc(m.title)}».`:'Este plano no tiene maniobras.'):'Válvulas tal como están dibujadas en el plano.'}</p>
+  </section>
+  <section class="sec"><div class="sh"><span class="n">03</span><h3>Simulador</h3></div>
+  <p class="anote">Toca una <b>válvula</b>, una <b>purga</b> o una <b>manguera</b> del plano para abrirla o cerrarla y mira cómo cambia el flujo. Toca una <b>PSV</b> para dispararla. El plano no se modifica.</p>
+  <div class="astat"><div><b>${tot?Math.round(live/tot*100):0}%</b><span>Tuberías con flujo</span></div><div><b>${cl}</b><span>Cerradas</span></div></div>
+  <div class="mrow"><button class="btn sm wide" data-aact="reset">↺ Restablecer</button></div></section>
+  <div class="foot"><b>P</b> pausa · <b>0</b> encuadrar<br>Lo apagado no tiene flujo.<br><b>Rojo</b> = cerrado.</div>`;
+}
+$('#asideAnim').addEventListener('click',e=>{
+  const b=e.target.closest('[data-aact]');if(!b)return;const a=b.dataset.aact,v=b.dataset.v;
+  if(a==='pause')animPaused=!animPaused;
+  else if(a==='speed')animSpeed=v; else if(a==='style')animStyle=v;
+  else if(a==='base'){animBase=v;SIM={}} else if(a==='reset')SIM={};
+  applySpeed();renderCanvas();renderAnim();
+});
+function simToggle(it){
+  const cur=MSTATE[it.id]||(it.type==='hose'?'on':it.kind==='psv'?'closed':it.closed?'closed':'open');
+  SIM[it.id]=it.type==='hose'?(cur==='off'?'on':'off'):(cur==='closed'?'open':'closed');
+  renderCanvas();renderAnim();
+  toast((it.type==='hose'?(HOSES[it.kind]||HOSES.agua).n:(it.tag&&!SYM[it.kind].fixed?it.tag:SYM[it.kind].n))+': '+(it.kind==='psv'?(SIM[it.id]==='open'?'disparada, alivia a antorcha':'cerrada'):{open:'abierta',closed:'cerrada',on:'conectada',off:'desconectada'}[SIM[it.id]]));
+}
 function renderItems(pal,hit,man){
-  const mst=man?manState(man.m,man.phase):null; MSTATE=mst?mst.st:{};
+  const anim=hit&&mode==='anim', mst=man?manState(man.m,man.phase):(anim?animState():null); MSTATE=mst?mst.st:{};
   const lines=S.items.filter(i=>i.type==='line');
   VSEGS=[];for(const l of lines)for(let i=0;i<l.pts.length-1;i++){const a=l.pts[i],b=l.pts[i+1];if(a[0]===b[0]&&a[1]!==b[1])VSEGS.push({id:l.id,x:a[0],y0:Math.min(a[1],b[1]),y1:Math.max(a[1],b[1])})}
   let s=lines.map(l=>drawLine(l,pal,hit)).join('');
-  if(hit&&flowOn)s+=drawFlow(lines,pal,mst);
+  let FI=null;
+  if(anim){FI=flowIntervals(lines,mst);s=`<g opacity=".28">${s}</g>`+drawFlowFancy(FI,pal)}
+  else if(hit&&flowOn)s+=drawFlow(lines,pal,mst);
   s+=junctions(lines,pal);
   for(const it of S.items){
     if(it.type==='sym')s+=drawSym(it,pal,hit);
@@ -640,8 +759,10 @@ function renderItems(pal,hit,man){
     else if(it.type==='title')s+=drawTitle(it,pal);
   }
   for(const it of S.items)if(it.type==='hose')s+=drawHose(it,pal,hit);
-  if(hit&&flowOn)for(const h of S.items)if(h.type==='hose'&&MSTATE[h.id]!=='off'){const q=hoseCtrl(h.a,h.b);s+=`<path class="flow" d="M${h.a[0]},${h.a[1]} Q${q[0]},${q[1]} ${h.b[0]},${h.b[1]}" fill="none" stroke="${pal.paper}" stroke-width="2.6" stroke-dasharray="6 12" opacity=".8" pointer-events="none"/>`}
+  if(anim)s+=drawAnimExtras(FI,pal);
+  else if(hit&&flowOn)for(const h of S.items)if(h.type==='hose'&&MSTATE[h.id]!=='off'){const q=hoseCtrl(h.a,h.b);s+=`<path class="flow" d="M${h.a[0]},${h.a[1]} Q${q[0]},${q[1]} ${h.b[0]},${h.b[1]}" fill="none" stroke="${pal.paper}" stroke-width="2.6" stroke-dasharray="6 12" opacity=".8" pointer-events="none"/>`}
   if(mst)s+=drawManOverlay(man,mst,pal);
+  if(anim)lastFI=FI;
   return s;
 }
 
@@ -711,7 +832,7 @@ function renderOver(){
   }
   O.innerHTML=s;
 }
-function renderAll(){renderCanvas();renderInspector();renderFluids();renderTools();renderMan();updUndo()}
+function renderAll(){renderCanvas();renderInspector();renderFluids();renderTools();renderMan();renderAnim();updUndo()}
 
 /* ════════ Paneles ════════ */
 const TOOLS=[
@@ -723,8 +844,9 @@ const TOOLS=[
 function renderTools(){
   $('#tools').innerHTML=TOOLS.map(t=>`<button class="tool${tool===t.k?' on':''}" data-tool="${t.k}" title="${t.n} (${t.key})"><kbd>${t.key}</kbd><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.i}</svg><span>${t.n}</span></button>`).join('');
   $$('.tile').forEach(t=>t.classList.toggle('on',(tool==='stamp'&&t.dataset.kind===stamp)||(tool==='hose'&&t.dataset.kind==='hose_'+hoseKind)));
-  stage.className='stage t-'+tool+(theme==='papel'?' paper':'');
+  stage.className='stage t-'+tool+(theme==='papel'?' paper':'')+(mode==='anim'?' anim':'')+(mode==='anim'&&animPaused?' paused':'');
   const hints={select:'Clic: seleccionar · Arrastrar: mover · Clic en un cuadradito de un equipo: sacar línea',line:drawingL?'Clic: codo · Doble clic / Enter: terminar · se engancha sola':'Clic para empezar · se engancha a bocas y líneas',hose:drawingH?'Clic en el destino · se engancha sola':'Clic en el origen de la manguera',text:'Clic para escribir',hand:'Arrastra para moverte',stamp:'Clic para colocar · Esc: cancelar'};
+  if(mode==='anim'){$('#stTool').innerHTML=`<b style="color:#38BDF8">ANIMACIÓN</b> &nbsp;Toca una válvula, purga o manguera para abrirla o cerrarla`;stage.classList.add('anim');return}
   if(mode==='man'){$('#stTool').innerHTML=`<b style="color:#E5484D">MANIOBRA</b> &nbsp;Toca una válvula, línea o equipo para añadir un paso`;return}
   $('#stTool').innerHTML=`<b>${(TOOLS.find(t=>t.k===tool)||{n:tool==='hose'?'Manguera':'Colocar'}).n.toUpperCase()}</b> &nbsp;${hints[tool]}`;
 }
@@ -1062,6 +1184,11 @@ svg.addEventListener('pointerdown',e=>{
   const p=toW(e), g=sp(p);
   try{svg.setPointerCapture(e.pointerId)}catch(_){}
   if(e.button===1||e.button===2||tool==='hand'||spaceDown){drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};stage.classList.add('panning');return}
+  if(mode==='anim'){
+    const node=e.target.closest('[data-id]'),it=node&&get(node.dataset.id);
+    if(it&&((it.type==='sym'&&(CLOSABLE.includes(it.kind)||it.kind==='ciego'||it.kind==='psv'))||it.type==='hose')){simToggle(it);return}
+    drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};return;
+  }
   if(mode==='man'){
     const mk=e.target.closest('[data-step]'); if(mk){closePop();flashStep(mk.dataset.step);return}
     const node=e.target.closest('[data-id]'), it=node&&get(node.dataset.id);
@@ -1225,8 +1352,9 @@ document.addEventListener('keydown',e=>{
   if(mod&&k==='y'){e.preventDefault();redo();return}
   if(mod&&k==='d'){e.preventDefault();dupSel();return}
   if(mod)return;
-  if(mode==='man'){
-    if(e.key==='Escape')closePop(); else if(k==='a')toggleFlow(); else if(k==='0')fit(); else if(k==='+'||k==='=')zoomAt(1.2); else if(k==='-')zoomAt(1/1.2);
+  if(mode!=='draw'){
+    if(mode==='anim'&&k==='p'){animPaused=!animPaused;applySpeed();renderAnim();return}
+    if(e.key==='Escape')closePop(); else if(k==='a'&&mode==='man')toggleFlow(); else if(k==='0')fit(); else if(k==='+'||k==='=')zoomAt(1.2); else if(k==='-')zoomAt(1/1.2);
     else if(e.key===' '){spaceDown=true;stage.classList.add('panning');e.preventDefault()}
     return;
   }
@@ -1374,7 +1502,7 @@ function drawManOverlay(man,ms,pal){
   }
   for(const id of ms.locks){const it=get(id);if(!it||it.type!=='sym')continue;const b=rbb(it);s+=lockG(it.x+b[0]-9,it.y+b[1]-9)}
   const cnt={};
-  man.m.steps.filter(x=>x.phase===man.phase).forEach((st,i)=>{
+  if(man)man.m.steps.filter(x=>x.phase===man.phase).forEach((st,i)=>{
     const a=anchorOf(st);if(!a)return;const key=a.join(',');const k=cnt[key]=(cnt[key]||0)+1;
     const x=a[0]+(k-1)*24,y=a[1],fill=st.done?'#22B35E':man.phase==='a'?'#FFC400':'#38BDF8';
     s+=`<g data-step="${st.id}" style="cursor:pointer"><circle cx="${x}" cy="${y}" r="11" fill="${fill}" stroke="${pal.paper}" stroke-width="2.5"/><text x="${x}" y="${y}" dy=".36em" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="11.5" fill="${st.done?'#fff':'#111'}">${st.done?'✓':i+1}</text></g>`;
@@ -1476,6 +1604,10 @@ function setMode(md){
   if(drawingL)finishLine(); if(editing)finishEdit();
   mode=md;sel=null;tool='select';stamp=null;closePop();
   $('.app').classList.toggle('man',md==='man');
+  $('.app').classList.toggle('anim',md==='anim');
+  stage.classList.toggle('anim',md==='anim');
+  if(md==='anim'){SIM={};if(!M())animBase='plano'}
+  applySpeed();
   $$('[data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===md));
   renderAll();
 }
