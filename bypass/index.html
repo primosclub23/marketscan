@@ -89,6 +89,7 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
 .stage.t-hand #cv,.stage.panning #cv{cursor:grab}
 .stage.t-select #cv [data-id]{cursor:move}
 .stage.t-select #cv [data-h]{cursor:pointer}
+.stage #cv [data-port]{cursor:crosshair}
 .tg{font-family:var(--mono);font-weight:700}
 .hint{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;color:var(--tx3)}
 .hint h2{font-family:var(--cond);font-weight:700;font-size:26px;letter-spacing:.08em;text-transform:uppercase;color:var(--tx2);margin-bottom:6px}
@@ -610,17 +611,22 @@ function renderOver(){
     }
   }
   const showPorts=mode==='draw'&&(tool==='line'||tool==='hose'||tool==='stamp'||(drag&&['move','vtx','hend'].includes(drag.t)));
-  if(showPorts){
+  if(mode==='draw'&&(showPorts||hoverId)){
     const conn=new Set();for(const o of S.items){if(o.type==='line'){conn.add(o.pts[0].join(','));conn.add(o.pts[o.pts.length-1].join(','))}else if(o.type==='hose'){conn.add(o.a.join(','));conn.add(o.b.join(','))}}
-    for(const o of S.items)if(o.type==='sym'&&!(drag&&o.id===sel&&drag.t==='move'&&false))for(const pt of portsOf(o)){
-      s+=conn.has(pt.p.join(','))?`<circle cx="${pt.p[0]}" cy="${pt.p[1]}" r="${2.8/k}" fill="#22B35E" pointer-events="none"/>`
-        :`<circle cx="${pt.p[0]}" cy="${pt.p[1]}" r="${3.8/k}" fill="${P.paper}" stroke="${sc}" stroke-width="${1.5/k}" opacity=".9" pointer-events="none"/>`;
+    for(const o of S.items){
+      if(o.type!=='sym'||(!showPorts&&o.id!==hoverId))continue;
+      const hov=o.id===hoverId&&tool==='select'&&!drag;
+      portsOf(o).forEach((pt,i)=>{
+        const c=conn.has(pt.p.join(',')),h=(c?6:hov?11:8.5)/k,x=pt.p[0]-h/2,y=pt.p[1]-h/2;
+        if(c)s+=`<rect x="${x}" y="${y}" width="${h}" height="${h}" fill="#22B35E" stroke="${P.paper}" stroke-width="${1/k}" pointer-events="none"/>`;
+        else s+=`<rect${hov?` data-port="${o.id}:${i}"`:''} x="${x}" y="${y}" width="${h}" height="${h}" fill="${hov?sc:P.paper}" fill-opacity="${hov?.25:1}" stroke="${sc}" stroke-width="${1.6/k}"${hov?'':' pointer-events="none"'}>${hov?'<title>Clic para sacar una línea desde aquí</title>':''}</rect>`;
+      });
     }
   }
   if(snapT&&snapT.body&&mode==='draw'){const o=get(snapT.id);if(o){const b=rbb(o);s+=`<rect x="${o.x+b[0]-7}" y="${o.y+b[1]-7}" width="${b[2]-b[0]+14}" height="${b[3]-b[1]+14}" rx="${6/k}" fill="${sc}" fill-opacity=".06" stroke="${sc}" stroke-width="${1.5/k}" stroke-dasharray="${6/k} ${4/k}" pointer-events="none"/>`}}
   if(snapT&&mode==='draw'){
     const q=snapT.p,cc=snapT.kind==='seg'?'#38BDF8':sc,lbl=snapT.kind==='seg'?'BIFURCAR':snapT.kind==='port'?'CONECTAR':'UNIR';
-    s+=`<circle cx="${q[0]}" cy="${q[1]}" r="${5/k}" fill="${cc}" pointer-events="none"/><circle class="snapring" cx="${q[0]}" cy="${q[1]}" r="${12/k}" fill="none" stroke="${cc}" stroke-width="${2.5/k}" pointer-events="none"/><text x="${q[0]+15/k}" y="${q[1]-13/k}" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${10.5/k}" fill="${cc}" stroke="${P.paper}" stroke-width="${3.5/k}" paint-order="stroke" pointer-events="none">${lbl}</text>`;
+    s+=(snapT.kind==='seg'?`<circle cx="${q[0]}" cy="${q[1]}" r="${5/k}" fill="${cc}" pointer-events="none"/>`:`<rect x="${q[0]-6/k}" y="${q[1]-6/k}" width="${12/k}" height="${12/k}" fill="${cc}" stroke="${P.paper}" stroke-width="${1.5/k}" pointer-events="none"/>`)+`<circle class="snapring" cx="${q[0]}" cy="${q[1]}" r="${12/k}" fill="none" stroke="${cc}" stroke-width="${2.5/k}" pointer-events="none"/><text x="${q[0]+15/k}" y="${q[1]-13/k}" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${10.5/k}" fill="${cc}" stroke="${P.paper}" stroke-width="${3.5/k}" paint-order="stroke" pointer-events="none">${lbl}</text>`;
   }
   O.innerHTML=s;
 }
@@ -637,7 +643,7 @@ function renderTools(){
   $('#tools').innerHTML=TOOLS.map(t=>`<button class="tool${tool===t.k?' on':''}" data-tool="${t.k}" title="${t.n} (${t.key})"><kbd>${t.key}</kbd><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${t.i}</svg><span>${t.n}</span></button>`).join('');
   $$('.tile').forEach(t=>t.classList.toggle('on',(tool==='stamp'&&t.dataset.kind===stamp)||(tool==='hose'&&t.dataset.kind==='hose_'+hoseKind)));
   stage.className='stage t-'+tool+(theme==='papel'?' paper':'');
-  const hints={select:'Clic: seleccionar · Arrastrar: mover',line:drawingL?'Clic: codo · Doble clic / Enter: terminar · se engancha sola':'Clic para empezar · se engancha a bocas y líneas',hose:drawingH?'Clic en el destino · se engancha sola':'Clic en el origen de la manguera',text:'Clic para escribir',hand:'Arrastra para moverte',stamp:'Clic para colocar · Esc: cancelar'};
+  const hints={select:'Clic: seleccionar · Arrastrar: mover · Clic en un cuadradito de un equipo: sacar línea',line:drawingL?'Clic: codo · Doble clic / Enter: terminar · se engancha sola':'Clic para empezar · se engancha a bocas y líneas',hose:drawingH?'Clic en el destino · se engancha sola':'Clic en el origen de la manguera',text:'Clic para escribir',hand:'Arrastra para moverte',stamp:'Clic para colocar · Esc: cancelar'};
   if(mode==='man'){$('#stTool').innerHTML=`<b style="color:#E5484D">MANIOBRA</b> &nbsp;Toca una válvula, línea o equipo para añadir un paso`;return}
   $('#stTool').innerHTML=`<b>${(TOOLS.find(t=>t.k===tool)||{n:tool==='hose'?'Manguera':'Colocar'}).n.toUpperCase()}</b> &nbsp;${hints[tool]}`;
 }
@@ -890,6 +896,7 @@ function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show')
 function setTool(t,k){
   if(drawingL&&t!=='line')finishLine();
   if(drawingH&&t!=='hose')drawingH=null;
+  if(t!=='select')hoverId=null;
   snapT=null; if(t==='hose'&&k)hoseKind=k;
   tool=t; stamp=t==='stamp'?k:null; if(t!=='select'&&t!=='stamp'){} renderTools(); renderOver();
 }
@@ -950,7 +957,7 @@ function zoomAt(f,cx,cy){
 }
 
 /* ════════ Puntero ════════ */
-let drawingH=null, hoseKind='agua', hoseCur=null, snapT=null, ghostRaw=null;
+let hoverId=null, drawingH=null, hoseKind='agua', hoseCur=null, snapT=null, ghostRaw=null;
 function lineCursor(p,alt){
   const g=sp(p),l=drawingL.pts[drawingL.pts.length-1];
   if(alt){drawingL.cur=[g];snapT=null;return}
@@ -979,6 +986,10 @@ svg.addEventListener('pointerdown',e=>{
     const node=e.target.closest('[data-id]'), it=node&&get(node.dataset.id);
     if(it&&(it.type==='sym'||it.type==='line'||it.type==='hose')){openPop(it,p,e);return}
     closePop(); drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y}; return;
+  }
+  if(mode==='draw'&&tool==='select'){
+    const pt=e.target.closest('[data-port]');
+    if(pt){const[id,i]=pt.dataset.port.split(':'),q=portsOf(get(id))[+i].p;hoverId=null;sel=null;setTool('line');drawingL={pts:[[q[0],q[1]]],cur:[[q[0],q[1]]],startId:id};snapFx(q,{kind:'port'});renderAll();return}
   }
   if(tool==='line'){
     if(!drawingL){const m=e.altKey?null:magnet(p),q=m?m.p:g;drawingL={pts:[q],cur:[q],startId:m&&m.id};if(m)snapFx(q,m);snapT=null;renderTools()}
@@ -1067,6 +1078,11 @@ svg.addEventListener('pointermove',e=>{
     renderOver();
   } else if(tool==='hose'){const m=e.altKey?null:magnet(p,{from:drawingH&&drawingH.a});snapT=m;hoseCur=m?m.p:g;ghostAt=hoseCur;renderOver()}
   else if(tool==='stamp'){ghostAt=g;ghostRaw=p;renderOver()}
+  else if(tool==='select'&&mode==='draw'){
+    const n=e.target.closest('[data-port],[data-id]'),id=n?(n.dataset.port?n.dataset.port.split(':')[0]:n.dataset.id):null,it=id&&get(id);
+    const hid=it&&it.type==='sym'&&!isInline(it.kind)&&portsOf(it).length?id:null;
+    if(hid!==hoverId){hoverId=hid;renderOver()}
+  }
 });
 function endDrag(){
   if(!drag)return; const d=drag; drag=null; stage.classList.remove('panning');
@@ -1078,7 +1094,7 @@ function endDrag(){
 }
 svg.addEventListener('pointerup',endDrag);
 svg.addEventListener('pointercancel',endDrag);
-svg.addEventListener('pointerleave',()=>{if(!drag){ghostAt=null;renderOver()}});
+svg.addEventListener('pointerleave',()=>{if(!drag){ghostAt=null;hoverId=null;renderOver()}});
 svg.addEventListener('contextmenu',e=>e.preventDefault());
 svg.addEventListener('wheel',e=>{
   e.preventDefault(); const r=svg.getBoundingClientRect();

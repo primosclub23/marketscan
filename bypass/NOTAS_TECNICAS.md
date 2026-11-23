@@ -43,6 +43,7 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
   - `snapSym()` monta las válvulas y purgas sobre la línea y las gira; en los equipos, encaja sus bocas en los extremos libres.
   - `findGlue()` y `applyGlue()` hacen que, al mover un equipo, las líneas y mangueras conectadas le sigan, manteniendo los ángulos rectos con codos automáticos (`moveEnd()`).
   - **Imán por cuerpo**: si llevas una línea o manguera dentro de un equipo, `bestPort()` elige la boca que la deja más recta. Primero las que quedan alineadas con el origen (sin codos), luego las que se encaran con un solo codo, y entre iguales la más cercana al cursor. Para elegir a propósito una boca concreta, acércate a ella desde fuera del equipo.
+  - **Cuadraditos de conexión**: las bocas se pintan como cuadraditos. Libres: amarillos huecos. Conectadas: verdes. Objetivo: amarillo relleno con anillo. Salen todos al dibujar o arrastrar; con la herramienta Mover salen solo los del equipo bajo el ratón (`hoverId`). Un clic en uno empieza una línea desde esa boca.
   - Con `Alt` se desactiva el imán.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
