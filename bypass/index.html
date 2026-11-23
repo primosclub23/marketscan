@@ -402,8 +402,8 @@ const SYM={
     d:(c,it)=>{const h=limHalf(it&&it.tag);return `<path d="M${-h},-13 H${h-13} L${h},0 L${h-13},13 H${-h} Z"/>`}},
   instrumento:{n:'Instrumento',g:'ot',tag:'PI',inside:true,bb:[-17,-17,17,17],d:()=>'<circle r="17"/>'}
 };
-const EXTRA=[{k:'hose_agua',n:'Manguera agua',g:'pm'},{k:'hose_n2',n:'Manguera N₂',g:'pm'},{k:'hose_metal',n:'Manguera metálica',g:'pm'},{k:'text',n:'Texto',g:'ot'},{k:'legend',n:'Leyenda',g:'ot'},{k:'title',n:'Cajetín',g:'ot'}];
-const HOSES={agua:{n:'Manguera de agua',c:'#22B35E'},n2:{n:'Manguera de N₂',c:'#3B82F6'},metal:{n:'Manguera metálica',c:'#9AA5B1',metal:true}};
+const EXTRA=[{k:'hose_agua',n:'Manguera agua',g:'pm'},{k:'hose_n2',n:'Manguera N₂',g:'pm'},{k:'hose_vapor',n:'Manguera vapor',g:'pm'},{k:'hose_metal',n:'Manguera metálica',g:'pm'},{k:'text',n:'Texto',g:'ot'},{k:'legend',n:'Leyenda',g:'ot'},{k:'title',n:'Cajetín',g:'ot'}];
+const HOSES={agua:{n:'Manguera de agua',c:'#22B35E'},n2:{n:'Manguera de N₂',c:'#3B82F6'},vapor:{n:'Manguera de vapor',c:'#E5484D'},metal:{n:'Manguera metálica',c:'#9AA5B1',metal:true}};
 const PURGA=['venteo','drenaje'];
 /* Bocas de conexión (coordenadas locales). [x,y] o [x,y,nx,ny] con la dirección hacia fuera. */
 const PORTS={
@@ -690,7 +690,7 @@ function renderInspector(){
     body+=`<div><label>Color</label>${swatches(it.fluid,'fluid')}</div>`;
   } else if(it.type==='hose'){
     title=(HOSES[it.kind]||HOSES.agua).n; code='MNG';
-    body+=`<div><label>Tipo</label>${seg('hkind',[['agua','Agua'],['n2','N₂'],['metal','Metálica']],it.kind)}</div>`;
+    body+=`<div><label>Tipo</label>${seg('hkind',[['agua','Agua'],['n2','N₂'],['vapor','Vapor'],['metal','Metál.']],it.kind)}</div>`;
     body+=`<div><label>Etiqueta</label><input type="text" data-f="tag" value="${esc(it.tag)}" placeholder="Ej: 3/4&quot; · 15 m"></div>`;
     body+=`<p style="font-size:12px;color:var(--tx3)">Arrastra los extremos amarillos: se enganchan solos a bocas y purgas.</p>`;
   } else if(it.type==='legend'){title='Leyenda';code='LEY';body+='<p style="font-size:12.5px;color:var(--tx3)">Se rellena sola con los fluidos que usas en las líneas.</p>'}

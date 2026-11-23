@@ -36,7 +36,7 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
   - `buildReturn()` genera la vuelta a servicio: recorre el aislamiento al revés con las acciones inversas.
   - `openSheet()` monta la hoja de maniobra A4. Se imprime con `window.print()` y unos estilos `@media print`.
 - **Purgas ¾"** (`venteo`, `drenaje`, grupo `pm`): una válvula pequeña con su tramo y tapón. Se colocan cerradas por defecto. Se montan solas sobre una línea o en una boca de equipo, y su extremo es una boca donde se engancha una manguera.
-- **Mangueras** (`type:'hose'`, `{kind:'agua'|'n2'|'metal', a, b, tag}`): se dibujan como una curva que cuelga. En modo maniobra admiten «Conectar» y «Desconectar»; desconectada se ve en transparente.
+- **Mangueras** (`type:'hose'`, `{kind:'agua'|'n2'|'vapor'|'metal', a, b, tag}`): se dibujan como una curva que cuelga. En modo maniobra admiten «Conectar» y «Desconectar»; desconectada se ve en transparente.
 - **Imán (enganche tipo lego)**:
   - `PORTS` define las bocas de cada símbolo y `portsOf()` las pasa a coordenadas del plano, teniendo en cuenta giro, espejo y escala.
   - `magnet()` busca, por este orden: bocas, extremos de línea o manguera y, si no hay nada, un punto sobre una línea (bifurcación).
