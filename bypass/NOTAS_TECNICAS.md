@@ -56,6 +56,12 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
   - **Simulador**: `SIM` guarda las válvulas, purgas, mangueras, ciegos y PSV que se abren o cierran tocándolos. No modifica el plano.
   - Estado de partida (`animBase`): las válvulas del plano o la maniobra activa (aislamiento).
   - Las purgas abiertas sobre una línea con flujo muestran la descarga. La PSV corta el flujo a antorcha salvo que esté disparada.
+- **Nivel en depósitos** (modo animación): `drawLiquids()` dibuja el líquido recortado con la forma del equipo (`clipPath`), con ola en la superficie. `liqTick()` (requestAnimationFrame) mueve el nivel hacia su objetivo:
+  - entra y sale líquido: 50 %, estable;
+  - solo entra: 92 %, se llena;
+  - solo sale: 4 %, se vacía.
+
+  Solo cuentan como salida de líquido las bocas de la mitad de abajo. El color es el del fluido que entra.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
 ## Pendiente o ideas

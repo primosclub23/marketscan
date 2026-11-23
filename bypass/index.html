@@ -708,6 +708,55 @@ function drawAnimExtras(FI,pal){
   }
   return s;
 }
+/* ── Nivel de líquido en depósitos (modo animación) ── */
+const VESSELS=['deposito_v','deposito_h','deposito_bota','columna','reactor','tanque'];
+let LEVEL={},LCOLOR={},VST={},liqRAF=null,liqT=0,liqPhase=0;
+function vesselFlows(FI,it){
+  const ps=portsOf(it).map(q=>q.p),at=q=>ps.some(pp=>Math.abs(pp[0]-q[0])<.6&&Math.abs(pp[1]-q[1])<.6);
+  let inn=null,out=false,any=false;
+  for(const o of FI.values()){
+    const a=o.ln.pts[0],e=o.ln.pts[o.ln.pts.length-1];
+    if(at(e)){any=true;if(o.endLive&&!inn)inn=o}
+    if(at(a)){any=true;if(o.endLive&&a[1]>=it.y)out=true} // salida de líquido: bocas de la mitad de abajo
+  }
+  return{any,inn,out};
+}
+function drawLiquids(FI,pal){
+  let s='';VST={};
+  for(const it of S.items){
+    if(it.type!=='sym'||!VESSELS.includes(it.kind))continue;
+    const f=vesselFlows(FI,it);if(!f.any)continue;
+    if(f.inn)LCOLOR[it.id]=col(f.inn.ln.fluid,pal);
+    const c=LCOLOR[it.id]||'#38BDF8',d=SYM[it.kind],sc=it.scale||1,b=rbb(it),tr=`rotate(${it.rot||0}) scale(${(it.flip?-1:1)*sc} ${sc})`,oc=col(it.fluid,pal);
+    if(LEVEL[it.id]==null)LEVEL[it.id]=.15;
+    VST[it.id]={target:f.inn&&f.out?.5:f.inn?.92:f.out?.04:null,b};
+    s+=`<g transform="translate(${it.x} ${it.y})" pointer-events="none"><clipPath id="lq_${it.id}" transform="${tr}">${d.d(c,it)}</clipPath>`
+      +`<path data-liq="${it.id}" clip-path="url(#lq_${it.id})" fill="${c}" fill-opacity=".45" stroke="${lighten(c,.55)}" stroke-width="2" d="${liqPath(b,LEVEL[it.id],liqPhase)}"/>`
+      +`<g transform="${tr}" fill="none" stroke="${oc}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${d.d(oc,it)}</g>`
+      +`<text data-liqt="${it.id}" x="${b[2]+6}" y="${b[1]+12}" font-family="JetBrains Mono,monospace" font-weight="700" font-size="11" fill="${lighten(c,.35)}" stroke="${pal.paper}" stroke-width="3" paint-order="stroke"></text></g>`;
+  }
+  return s;
+}
+function liqPath(b,L,ph){
+  const top=b[3]-(b[3]-b[1])*L;let d=`M${b[0]-4},${b[3]+4} L${b[0]-4},${top}`;
+  for(let x=b[0]-4;x<=b[2]+4;x+=5)d+=` L${x},${(top+Math.sin(ph+x*.2)*1.7).toFixed(1)}`;
+  return d+` L${b[2]+4},${b[3]+4} Z`;
+}
+function liqTick(t){
+  liqRAF=null;if(mode!=='anim')return;
+  const dt=Math.min(.1,(t-(liqT||t))/1000);liqT=t;
+  if(!animPaused){
+    const sp={l:.5,n:1,r:2}[animSpeed];liqPhase+=dt*3.2*sp;
+    for(const id in VST){const v=VST[id];if(v.target==null)continue;const L=LEVEL[id],r=.07*sp*dt;LEVEL[id]=L<v.target?Math.min(v.target,L+r):Math.max(v.target,L-r)}
+  }
+  for(const id in VST){
+    const v=VST[id],L=LEVEL[id],el=W.querySelector(`[data-liq="${id}"]`),tx=W.querySelector(`[data-liqt="${id}"]`);
+    if(el)el.setAttribute('d',liqPath(v.b,L,liqPhase));
+    if(tx){const st=v.target==null||Math.abs(v.target-L)<.004?(v.target==null?'■':'≈'):v.target>L?'▲':'▼';tx.textContent=`${st} ${Math.round(L*100)}%`}
+  }
+  liqRAF=requestAnimationFrame(liqTick);
+}
+function startLiq(){liqT=0;if(!liqRAF)liqRAF=requestAnimationFrame(liqTick)}
 function applySpeed(){stage.style.setProperty('--fd',{l:'1.6s',n:'.9s',r:'.45s'}[animSpeed]);stage.classList.toggle('paused',animPaused)}
 function renderAnim(){
   const box=$('#asideAnim');if(mode!=='anim'){box.innerHTML='';return}
@@ -728,13 +777,13 @@ function renderAnim(){
   <p class="anote">Toca una <b>válvula</b>, una <b>purga</b> o una <b>manguera</b> del plano para abrirla o cerrarla y mira cómo cambia el flujo. Toca una <b>PSV</b> para dispararla. El plano no se modifica.</p>
   <div class="astat"><div><b>${tot?Math.round(live/tot*100):0}%</b><span>Tuberías con flujo</span></div><div><b>${cl}</b><span>Cerradas</span></div></div>
   <div class="mrow"><button class="btn sm wide" data-aact="reset">↺ Restablecer</button></div></section>
-  <div class="foot"><b>P</b> pausa · <b>0</b> encuadrar<br>Lo apagado no tiene flujo.<br><b>Rojo</b> = cerrado.</div>`;
+  <div class="foot"><b>P</b> pausa · <b>0</b> encuadrar<br>Lo apagado no tiene flujo · <b>Rojo</b> = cerrado<br>Depósitos: <b>▲</b> llenando · <b>▼</b> vaciando · <b>≈</b> estable</div>`;
 }
 $('#asideAnim').addEventListener('click',e=>{
   const b=e.target.closest('[data-aact]');if(!b)return;const a=b.dataset.aact,v=b.dataset.v;
   if(a==='pause')animPaused=!animPaused;
   else if(a==='speed')animSpeed=v; else if(a==='style')animStyle=v;
-  else if(a==='base'){animBase=v;SIM={}} else if(a==='reset')SIM={};
+  else if(a==='base'){animBase=v;SIM={};LEVEL={}} else if(a==='reset'){SIM={};LEVEL={}}
   applySpeed();renderCanvas();renderAnim();
 });
 function simToggle(it){
@@ -759,7 +808,7 @@ function renderItems(pal,hit,man){
     else if(it.type==='title')s+=drawTitle(it,pal);
   }
   for(const it of S.items)if(it.type==='hose')s+=drawHose(it,pal,hit);
-  if(anim)s+=drawAnimExtras(FI,pal);
+  if(anim)s+=drawLiquids(FI,pal)+drawAnimExtras(FI,pal);
   else if(hit&&flowOn)for(const h of S.items)if(h.type==='hose'&&MSTATE[h.id]!=='off'){const q=hoseCtrl(h.a,h.b);s+=`<path class="flow" d="M${h.a[0]},${h.a[1]} Q${q[0]},${q[1]} ${h.b[0]},${h.b[1]}" fill="none" stroke="${pal.paper}" stroke-width="2.6" stroke-dasharray="6 12" opacity=".8" pointer-events="none"/>`}
   if(mst)s+=drawManOverlay(man,mst,pal);
   if(anim)lastFI=FI;
@@ -1606,7 +1655,7 @@ function setMode(md){
   $('.app').classList.toggle('man',md==='man');
   $('.app').classList.toggle('anim',md==='anim');
   stage.classList.toggle('anim',md==='anim');
-  if(md==='anim'){SIM={};if(!M())animBase='plano'}
+  if(md==='anim'){SIM={};LEVEL={};LCOLOR={};if(!M())animBase='plano';setTimeout(startLiq,0)}
   applySpeed();
   $$('[data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===md));
   renderAll();
