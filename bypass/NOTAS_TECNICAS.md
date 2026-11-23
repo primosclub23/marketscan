@@ -27,11 +27,12 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
   - La línea se termina con doble clic, `Enter` o `Esc`, o automáticamente al tocar otra línea o un equipo.
   - Una válvula colocada sobre un tramo vertical gira sola y toma el color del fluido de esa línea.
   - Con una línea seleccionada: los cuadrados mueven un vértice y los rombos mueven un tramo entero. Si el tramo es el primero o el último, se crea un codo nuevo.
+- **Saltos en los cruces**: `hopPath()` hace que los tramos horizontales salten en arco sobre los verticales de otras líneas. Los cruces se calculan en `renderItems` (`VSEGS`).
+- **Válvula abierta / cerrada**: `it.closed` rellena el cuerpo de la válvula (convenio de válvula cerrada). Solo en manual, automática, motorizada y tres vías. Tecla `C` o el inspector.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
 ## Pendiente o ideas
 
-- Saltos de línea en los cruces.
 - Conexión magnética a las bocas de los equipos.
 - Selección múltiple.
 - Exportar a PDF en A3.
