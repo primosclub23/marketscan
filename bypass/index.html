@@ -147,6 +147,21 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);opacity:0;transition:.25s;background:var(--hz);color:#111;font-family:var(--cond);font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:9px 16px;border-radius:4px;z-index:30;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%)}
 
+/* ── Estado de válvulas (maniobra) ── */
+.stepper{display:flex;align-items:center;gap:3px;background:var(--ui);border:1px solid var(--line2);border-radius:5px;padding:4px}
+.stepper button{width:26px;height:30px;border-radius:4px;color:var(--tx2);font-size:11px;flex:none}
+.stepper button:hover{background:var(--ui4);color:var(--tx)}
+.stepper span{flex:1;min-width:0;text-align:center;font-size:12px;color:var(--tx);line-height:1.25}
+.stepper small{display:block;font-family:var(--mono);font-size:10px;color:var(--tx3)}
+.vchips{display:flex;flex-wrap:wrap;gap:5px}
+.vchip{display:flex;align-items:center;gap:6px;padding:5px 7px;border-radius:4px;background:var(--ui3);border:1px solid var(--line);font-size:12px;text-align:left}
+.vchip i{width:11px;height:11px;border-radius:2px;flex:none}
+.vchip b{font-family:var(--mono);font-size:11.5px}
+.vchip small{font-family:var(--cond);font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--tx3)}
+.vchip em{color:var(--hz);font-style:normal;font-weight:700}
+.vchip:hover{border-color:var(--hz)}
+.st.cur{border-color:#38BDF8;box-shadow:inset 3px 0 0 #38BDF8}
+.st.future{opacity:.45}
 /* ── Modo animación ── */
 .app.anim .hazard{background:repeating-linear-gradient(-45deg,#38BDF8 0 8px,#101316 8px 16px)}
 .modetg button[data-mode=anim].on{background:#38BDF8;color:#0C0F12}
@@ -514,9 +529,10 @@ function drawLine(it,pal,hit){
 }
 function drawSym(it,pal,hit){
   const d=SYM[it.kind]; if(!d)return '';
-  const ms=MSTATE[it.id]; let c=col(it.fluid,pal); if(ms==='closed'&&it.kind==='ciego')c=RED;
+  const ms=MSTATE[it.id]; let c=col(it.fluid,pal); if(ms==='closed'&&it.kind==='ciego')c=SHOWST?VC():RED;
   const s=it.scale||1, bb=bbOf(it.kind,it), b=rbb(it);
-  const shut=(ms?ms==='closed':it.closed)&&CLOSABLE.includes(it.kind), fc=ms==='closed'?RED:c;
+  const isV=CLOSABLE.includes(it.kind), shut=(ms?ms==='closed':it.closed)&&isV, showOpen=SHOWST&&isV&&ms==='open';
+  const fc=SHOWST?(shut?VC():VO()):(ms==='closed'?RED:c);
   let t='';
   if(it.tag){
     if(d.side)t=`<text x="${it.flip?b[0]-4*s:b[2]+4*s}" y="${(b[1]+b[3])/2+4}" text-anchor="${it.flip?'end':'start'}" class="tg" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${10*s}" fill="${c}" stroke="${pal.paper}" stroke-width="3.5" stroke-linejoin="round" paint-order="stroke">${esc(it.tag)}</text>`;
@@ -524,7 +540,7 @@ function drawSym(it,pal,hit){
     else t=`<text x="${(b[0]+b[2])/2}" y="${b[3]+15*s}" text-anchor="middle" class="tg" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${11.5*s}" fill="${c}" stroke="${pal.paper}" stroke-width="4" stroke-linejoin="round" paint-order="stroke">${esc(it.tag)}</text>`;
   }
   const hr=hit?`<rect x="${bb[0]-3}" y="${bb[1]-3}" width="${bb[2]-bb[0]+6}" height="${bb[3]-bb[1]+6}" fill="transparent" stroke="none"/>`:'';
-  return `<g data-id="${it.id}" transform="translate(${it.x} ${it.y})"><g transform="rotate(${it.rot||0}) scale(${(it.flip?-1:1)*s} ${s})" stroke="${c}" fill="${pal.paper}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${hr}${d.d(c,it,shut&&PURGA.includes(it.kind)?fc:null)}${shut&&!PURGA.includes(it.kind)?`<path d="${BOWD}" fill="${fc}" stroke="${fc}"/>`+(it.kind==='tresvias'?`<path d="M0,0 L-12,24 L12,24 Z" fill="${fc}" stroke="${fc}"/>`:''):''}</g>${t}</g>`;
+  return `<g data-id="${it.id}" transform="translate(${it.x} ${it.y})"><g transform="rotate(${it.rot||0}) scale(${(it.flip?-1:1)*s} ${s})" stroke="${c}" fill="${pal.paper}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">${hr}${d.d(c,it,(shut||showOpen)&&PURGA.includes(it.kind)?fc:null)}${(shut||showOpen)&&!PURGA.includes(it.kind)?`<path d="${BOWD}" fill="${fc}" stroke="${fc}"/>`+(it.kind==='tresvias'?`<path d="M0,0 L-12,24 L12,24 Z" fill="${fc}" stroke="${fc}"/>`:''):''}</g>${t}</g>`;
 }
 function drawText(it,pal){
   return `<text data-id="${it.id}" x="${it.x}" y="${it.y}" font-family="Barlow Condensed,Arial Narrow,sans-serif" font-weight="700" letter-spacing=".03em" font-size="${it.size||16}" fill="${col(it.fluid,pal)}">${esc(it.text)}</text>`;
@@ -793,7 +809,7 @@ function simToggle(it){
   toast((it.type==='hose'?(HOSES[it.kind]||HOSES.agua).n:(it.tag&&!SYM[it.kind].fixed?it.tag:SYM[it.kind].n))+': '+(it.kind==='psv'?(SIM[it.id]==='open'?'disparada, alivia a antorcha':'cerrada'):{open:'abierta',closed:'cerrada',on:'conectada',off:'desconectada'}[SIM[it.id]]));
 }
 function renderItems(pal,hit,man){
-  const anim=hit&&mode==='anim', mst=man?manState(man.m,man.phase):(anim?animState():null); MSTATE=mst?mst.st:{};
+  const anim=hit&&mode==='anim', mst=man?manState(man.m,man.phase,man.upto):(anim?animState():null); MSTATE=mst?mst.st:{}; SHOWST=!!man;
   const lines=S.items.filter(i=>i.type==='line');
   VSEGS=[];for(const l of lines)for(let i=0;i<l.pts.length-1;i++){const a=l.pts[i],b=l.pts[i+1];if(a[0]===b[0]&&a[1]!==b[1])VSEGS.push({id:l.id,x:a[0],y0:Math.min(a[1],b[1]),y1:Math.max(a[1],b[1])})}
   let s=lines.map(l=>drawLine(l,pal,hit)).join('');
@@ -1476,7 +1492,10 @@ $('#flAdd').onclick=()=>{S.fluids.push({id:uid(),name:'Nuevo fluido',color:'#A78
    S.manis = [{id,title,permit,by,steps:[{id,phase:'a'|'v',target,act,note,done,x,y,vert}]}]
    'a' = aislamiento, 'v' = vuelta a servicio. */
 const RED='#E5484D';
-let mode='draw', phase='a', popCtx=null, MSTATE={};
+let mode='draw', phase='a', popCtx=null, MSTATE={}, SHOWST=false, manView=null;
+let VCONV='rc'; try{VCONV=localStorage.getItem('bypass.vconv')||'rc'}catch(e){}
+const VC=()=>VCONV==='rc'?'#E5484D':'#22B35E', VO=()=>VCONV==='rc'?'#22B35E':'#E5484D';
+const VTYPE={manual:'MANUAL',control:'AUTOMÁTICA',motor:'MOTORIZADA',tresvias:'3 VÍAS',venteo:'VENTEO',drenaje:'DRENAJE'};
 const ACTS={
   cerrar:{n:'Cerrar',inv:'abrir',st:'closed',k:RED},
   abrir:{n:'Abrir',inv:'cerrar',st:'open',k:'#22B35E'},
@@ -1496,7 +1515,7 @@ const ACTS={
   nota:{n:'Añadir nota',k:'#5E6A77'}
 };
 function M(){if(!S.manis||!S.manis.length)return null;return S.manis[Math.min(S.manIdx||0,S.manis.length-1)]}
-function manCtx(){const m=mode==='man'&&M();return m?{m,phase}:null}
+function manCtx(){const m=mode==='man'&&M();if(!m)return null;if(manView!=null&&manView>=manSeq(m,phase).length)manView=null;return{m,phase,upto:manView}}
 function newMan(){if(!S.manis)S.manis=[];const m={id:uid(),title:'Nueva maniobra',permit:'',by:'',steps:[]};S.manis.push(m);S.manIdx=S.manis.length-1;phase='a';return m}
 function actsFor(it){
   if(it.type==='hose')return['conectar','desconectar','nota'];
@@ -1519,10 +1538,11 @@ function targetLabel(s){
   return'';
 }
 function stepText(s){return s.act==='nota'?(s.note||'Nota'):(ACTS[s.act]||ACTS.nota).n}
-function manState(m,ph){
-  const st={},locks=new Set(),blinds=[];
-  for(const s of m.steps){
-    if(ph==='a'&&s.phase!=='a')continue;
+function manSeq(m,ph){const a=m.steps.filter(s=>s.phase==='a');return ph==='v'?a.concat(m.steps.filter(s=>s.phase==='v')):a}
+function manState(m,ph,upto){
+  const st={},locks=new Set(),blinds=[],seq=manSeq(m,ph),n=upto==null?seq.length:Math.min(upto,seq.length);
+  for(let si=0;si<n;si++){
+    const s=seq[si];
     const A=ACTS[s.act];if(!A||!s.target)continue;
     const t=get(s.target);
     if(A.st)st[s.target]=A.st;
@@ -1533,6 +1553,7 @@ function manState(m,ph){
       else{let bi=-1,bd=1e9;blinds.forEach((b,i)=>{if(b.target!==s.target)return;const d=Math.hypot(b.x-s.x,b.y-s.y);if(d<bd){bd=d;bi=i}});if(bi>=0)blinds.splice(bi,1)}
     }
   }
+  for(const it of S.items)if(it.type==='sym'&&CLOSABLE.includes(it.kind)&&!st[it.id])st[it.id]=it.closed?'closed':'open';
   return{st,locks,blinds};
 }
 function lockG(x,y){return`<g transform="translate(${x} ${y})"><path d="M-4,-1 V-4.5 a4,4 0 0 1 8,0 V-1" fill="none" stroke="${RED}" stroke-width="2.2"/><rect x="-6.5" y="-1.5" width="13" height="10.5" rx="1.5" fill="${RED}"/><circle cy="3.5" r="1.6" fill="#fff"/></g>`}
@@ -1551,10 +1572,12 @@ function drawManOverlay(man,ms,pal){
   }
   for(const id of ms.locks){const it=get(id);if(!it||it.type!=='sym')continue;const b=rbb(it);s+=lockG(it.x+b[0]-9,it.y+b[1]-9)}
   const cnt={};
+  const seqIds=man?manSeq(man.m,man.phase).map(x=>x.id):[];
   if(man)man.m.steps.filter(x=>x.phase===man.phase).forEach((st,i)=>{
+    const fut=man.upto!=null&&seqIds.indexOf(st.id)>=man.upto;
     const a=anchorOf(st);if(!a)return;const key=a.join(',');const k=cnt[key]=(cnt[key]||0)+1;
     const x=a[0]+(k-1)*24,y=a[1],fill=st.done?'#22B35E':man.phase==='a'?'#FFC400':'#38BDF8';
-    s+=`<g data-step="${st.id}" style="cursor:pointer"><circle cx="${x}" cy="${y}" r="11" fill="${fill}" stroke="${pal.paper}" stroke-width="2.5"/><text x="${x}" y="${y}" dy=".36em" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="11.5" fill="${st.done?'#fff':'#111'}">${st.done?'✓':i+1}</text></g>`;
+    s+=`<g data-step="${st.id}" style="cursor:pointer"${fut?' opacity=".3"':''}><circle cx="${x}" cy="${y}" r="11" fill="${fill}" stroke="${pal.paper}" stroke-width="2.5"/><text x="${x}" y="${y}" dy=".36em" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="11.5" fill="${st.done?'#fff':'#111'}">${st.done?'✓':i+1}</text></g>`;
   });
   return s;
 }
@@ -1584,7 +1607,7 @@ $('#pop').addEventListener('click',e=>{
   const b=e.target.closest('[data-pact]');if(!b||!popCtx)return;
   const m=M()||newMan(),st={id:uid(),phase,target:popCtx.id,act:b.dataset.pact,note:'',done:false};
   if(popCtx.pos){st.x=popCtx.pos[0];st.y=popCtx.pos[1];st.vert=popCtx.pos[2]}
-  m.steps.push(st);closePop();commit();renderAll();flashStep(st.id,st.act==='nota');
+  m.steps.push(st);manView=null;closePop();commit();renderAll();flashStep(st.id,st.act==='nota');
 });
 function flashStep(id,focus){
   const m=M();if(!m)return;const st=m.steps.find(x=>x.id===id);if(!st)return;
@@ -1605,13 +1628,31 @@ function genReturn(m){
 }
 function stepRow(s,i){
   const A=ACTS[s.act]||ACTS.nota,lbl=targetLabel(s);
-  return`<div class="st ${s.phase}${s.done?' done':''}" data-sid="${s.id}"><button class="num" data-mact="done" title="Marcar como hecho">${s.done?'✓':i+1}</button><div class="tx"><b><i style="background:${A.k}"></i>${esc(s.act==='nota'?'Nota':A.n)}</b>${lbl?`<em>${esc(lbl)}</em>`:''}<input type="text" data-mf="note" placeholder="${s.act==='nota'?'Escribe la nota…':'Observaciones'}" value="${esc(s.note)}"></div><div class="ops"><button data-mact="up" title="Subir">▲</button><button data-mact="down" title="Bajar">▼</button><button data-mact="del" title="Quitar">✕</button></div></div>`;
+  const cls=(RMcur===s.id?' cur':'')+(RMfut.has(s.id)?' future':'');
+  return`<div class="st ${s.phase}${s.done?' done':''}${cls}" data-sid="${s.id}"><button class="num" data-mact="done" title="Marcar como hecho">${s.done?'✓':i+1}</button><div class="tx"><b><i style="background:${A.k}"></i>${esc(s.act==='nota'?'Nota':A.n)}</b>${lbl?`<em>${esc(lbl)}</em>`:''}<input type="text" data-mf="note" placeholder="${s.act==='nota'?'Escribe la nota…':'Observaciones'}" value="${esc(s.note)}"></div><div class="ops"><button data-mact="up" title="Subir">▲</button><button data-mact="down" title="Bajar">▼</button><button data-mact="del" title="Quitar">✕</button></div></div>`;
+}
+let RMcur=null,RMfut=new Set();
+function valveSection(m){
+  const seq=manSeq(m,phase),N=seq.length,k=manView==null?N:manView,ms=manState(m,phase,k).st;
+  const vs=S.items.filter(i=>i.type==='sym'&&CLOSABLE.includes(i.kind)),cl=vs.filter(i=>ms[i.id]==='closed'),op=vs.filter(i=>ms[i.id]!=='closed');
+  const name=it=>SYM[it.kind].fixed?SYM[it.kind].n:(it.tag||'Sin tag');
+  const chip=it=>{const ch=ms[it.id]!==(it.closed?'closed':'open');return`<button class="vchip" data-vid="${it.id}" title="Ver en el plano"><i style="background:${ms[it.id]==='closed'?VC():VO()}"></i><b>${esc(name(it))}</b><small>${VTYPE[it.kind]}</small>${ch?'<em>•</em>':''}</button>`};
+  const st=k>0?seq[k-1]:null,na=m.steps.filter(x=>x.phase==='a').length;
+  const lbl=k===0?'Estado inicial del plano':`Tras ${st.phase==='a'?'el paso '+k:'normalizar '+(k-na)}: ${esc(stepText(st))}${targetLabel(st)?' '+esc(targetLabel(st)):''}`;
+  return`<section class="sec mf"><div class="sh"><span class="n">03</span><h3>Estado de válvulas</h3></div>
+  <div class="stepper"><button data-mact="v0" title="Estado inicial">⏮</button><button data-mact="vprev" title="Paso anterior">◀</button><span>${lbl}<small>${k} / ${N}${manView==null?' · final':''}</small></span><button data-mact="vnext" title="Paso siguiente">▶</button><button data-mact="vend" title="Estado final">⏭</button></div>
+  <label>Cerradas · ${cl.length}</label><div class="vchips">${cl.map(chip).join('')||'<span class="anote">Ninguna</span>'}</div>
+  <label>Abiertas · ${op.length}</label><div class="vchips">${op.map(chip).join('')||'<span class="anote">Ninguna</span>'}</div>
+  <p class="anote" style="margin-top:8px"><b style="color:var(--hz)">•</b> cambia en esta maniobra</p>
+  <label>Colores</label>${seg('vconv',[['rc','Rojo = cerrada'],['vc','Verde = cerrada']],VCONV).replace(/data-act=/g,'data-mact=')}
+  </section>`;
 }
 function renderMan(){
   const box=$('#asideMan');if(mode!=='man'){box.innerHTML='';return}
   const m=M();
   if(!m){box.innerHTML=`<section class="sec"><div class="sh"><span class="n">01</span><h3>Maniobra</h3></div><div class="empty">Prepara aquí el aislamiento de un equipo para un trabajo: qué válvulas cerrar y consignar, dónde poner ciegos, qué drenar y purgar. Después sacas la hoja de maniobra para imprimir y firmar.</div><div class="mrow"><button class="btn pri wide" data-mact="new">+ Nueva maniobra</button><button class="btn sm wide" data-mact="sample">Ver ejemplo (carga el plano de muestra)</button></div></section>`;return}
   const na=m.steps.filter(s=>s.phase==='a').length,nv=m.steps.length-na,steps=m.steps.filter(s=>s.phase===phase);
+  {const seq=manSeq(m,phase);if(manView!=null&&manView>=seq.length)manView=null;RMcur=manView!=null&&manView>0?seq[manView-1].id:null;RMfut=new Set(manView!=null?seq.slice(manView).map(x=>x.id):[])}
   box.innerHTML=`<section class="sec mf"><div class="sh"><span class="n">01</span><h3>Trabajo</h3><button class="act" data-mact="new">+ Nueva</button></div>
   ${S.manis.length>1?`<select data-mf="idx">${S.manis.map((x,i)=>`<option value="${i}"${x===m?' selected':''}>${esc(x.title||'Sin título')}</option>`).join('')}</select>`:''}
   <label>Trabajo a realizar</label><input type="text" data-mf="title" value="${esc(m.title)}" placeholder="Ej: Cambio de PSV-101">
@@ -1620,15 +1661,24 @@ function renderMan(){
   ${seg('ph',[['a','Aislar · '+na],['v','Normalizar · '+nv]],phase).replace(/data-act=/g,'data-mact=')}
   <div class="steps">${steps.length?steps.map(stepRow).join(''):`<div class="empty">${phase==='a'?'Toca una <b>válvula</b>, una <b>línea</b> o un <b>equipo</b> del plano para añadir el primer paso.':'Pulsa «Generar desde el aislamiento» y se crea la vuelta a servicio en orden inverso.'}</div>`}</div>
   <div class="mrow"><button class="btn sm" data-mact="note">+ Nota</button>${phase==='v'?`<button class="btn sm" data-mact="gen">↺ Generar desde el aislamiento</button>`:''}</div></section>
-  <section class="sec"><div class="sh"><span class="n">03</span><h3>Hoja</h3></div><button class="btn pri wide" data-mact="sheet">Ver hoja de maniobra</button><div class="mrow"><button class="btn sm wide" data-mact="delman">Borrar esta maniobra</button></div></section>
-  <div class="foot">Toca el <b>número</b> de un paso para marcarlo como hecho.<br>Toca un número del plano para ir a su paso.<br><b>Rojo</b> = cerrado / ciego · <b>candado</b> = consignado</div>`;
+  ${valveSection(m)}
+  <section class="sec"><div class="sh"><span class="n">04</span><h3>Hoja</h3></div><button class="btn pri wide" data-mact="sheet">Ver hoja de maniobra</button><div class="mrow"><button class="btn sm wide" data-mact="delman">Borrar esta maniobra</button></div></section>
+  <div class="foot">Toca el <b>número</b> de un paso para marcarlo como hecho.<br>Toca un número del plano para ir a su paso.<br><b style="color:${VC()}">■</b> cerrada · <b style="color:${VO()}">■</b> abierta · <b>candado</b> = consignado</div>`;
 }
 $('#asideMan').addEventListener('click',e=>{
+  const vc=e.target.closest('[data-vid]');
+  if(vc){const it=get(vc.dataset.vid);if(it){const r=svg.getBoundingClientRect();view.x=r.width/2-it.x*view.k;view.y=r.height/2-it.y*view.k;applyView();renderOver();setTimeout(()=>snapFx([it.x,it.y],{kind:'port'}),30);setTimeout(()=>snapFx([it.x,it.y],{kind:'port'}),400)}return}
   const b=e.target.closest('[data-mact]');if(!b)return;const a=b.dataset.mact,m=M();
   if(a==='new'){newMan();commit();renderAll();const t=document.querySelector('[data-mf="title"]');if(t){t.focus();t.select()}return}
   if(a==='sample'){S=sample();sel=null;phase='a';$('#docName').value=S.name;commit();renderAll();fit();return}
   if(!m)return;
-  if(a==='ph'){phase=b.dataset.v;closePop();renderAll();return}
+  if(a==='ph'){phase=b.dataset.v;manView=null;closePop();renderAll();return}
+  if(a==='vconv'){VCONV=b.dataset.v;try{localStorage.setItem('bypass.vconv',VCONV)}catch(e){}renderAll();return}
+  if(a==='v0'||a==='vprev'||a==='vnext'||a==='vend'){
+    const N=manSeq(m,phase).length,k=manView==null?N:manView;
+    manView=a==='v0'?0:a==='vend'?null:a==='vprev'?Math.max(0,k-1):(k+1>=N?null:k+1);
+    renderAll();const cur=document.querySelector('.st.cur');if(cur)cur.scrollIntoView({block:'nearest'});return;
+  }
   if(a==='note'){const st={id:uid(),phase,target:null,act:'nota',note:'',done:false};m.steps.push(st);commit();renderAll();flashStep(st.id,true);return}
   if(a==='gen'){genReturn(m);return}
   if(a==='sheet'){openSheet();return}
@@ -1673,7 +1723,7 @@ function openSheet(){
   <table class="meta"><tr><td><small>PLANO / UNIDAD</small><b>${esc(S.name)}</b></td><td><small>PERMISO DE TRABAJO Nº</small><b>${esc(m.permit)}</b></td><td><small>FECHA</small><b>${new Date().toLocaleDateString('es-ES')}</b></td></tr>
   <tr><td><small>PREPARADO POR</small><b>${esc(m.by)}</b></td><td><small>REVISADO · JEFE DE TURNO</small></td><td><small>ENTREGADO A MANTENIMIENTO · HORA</small></td></tr></table>
   <div class="plan">${plan}</div>
-  <div class="keys"><span><span class="bd" style="width:16px;height:16px;font-size:9px">1</span>Nº de paso de aislamiento</span><span><svg width="26" height="14"><path d="M1,1 L13,7 L1,13 Z M25,1 L13,7 L25,13 Z" fill="${RED}" stroke="${RED}"/></svg>Válvula cerrada</span><span><svg width="16" height="18"><path d="M8,4 V18" stroke="${RED}" stroke-width="5"/><circle cx="8" cy="4" r="4" fill="${RED}"/></svg>Ciego instalado</span><span><svg width="16" height="20" viewBox="-8 -10 16 20">${lockG(0,0)}</svg>Consignado (candado + etiqueta)</span></div>
+  <div class="keys"><span><span class="bd" style="width:16px;height:16px;font-size:9px">1</span>Nº de paso de aislamiento</span><span><svg width="26" height="14"><path d="M1,1 L13,7 L1,13 Z M25,1 L13,7 L25,13 Z" fill="${VC()}" stroke="${VC()}"/></svg>Válvula cerrada</span><span><svg width="26" height="14"><path d="M1,1 L13,7 L1,13 Z M25,1 L13,7 L25,13 Z" fill="${VO()}" stroke="${VO()}"/></svg>Válvula abierta</span><span><svg width="16" height="18"><path d="M8,4 V18" stroke="${RED}" stroke-width="5"/><circle cx="8" cy="4" r="4" fill="${RED}"/></svg>Ciego instalado</span><span><svg width="16" height="20" viewBox="-8 -10 16 20">${lockG(0,0)}</svg>Consignado (candado + etiqueta)</span></div>
   <h2><span class="bd">1</span>AISLAMIENTO</h2><table class="steps-t">${head}<tbody>${rows('a')}</tbody></table>
   <h2><span class="bd v">2</span>VUELTA A SERVICIO</h2><table class="steps-t">${head}<tbody>${rows('v')}</tbody></table>
   <div class="sign"><div>PREPARADO</div><div>REVISADO</div><div>APROBADO</div></div>

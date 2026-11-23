@@ -62,6 +62,9 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
   - solo sale: 4 %, se vacía.
 
   Solo cuentan como salida de líquido las bocas de la mitad de abajo. El color es el del fluido que entra.
+- **Estado de válvulas en maniobra**: `manState()` completa el estado de todas las válvulas (las que no tocan los pasos toman el del plano). En modo maniobra y en la hoja (`SHOWST`) se rellenan de color: `VC()` cerrada y `VO()` abierta. El convenio rojo/verde se puede invertir y se guarda en `localStorage` (`bypass.vconv`).
+  - Visor paso a paso (`manView`): estado tras el paso k; los pasos posteriores se ven atenuados.
+  - Panel «Estado de válvulas»: listas de cerradas y abiertas con su tipo. Tocar una centra el plano en ella.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
 ## Pendiente o ideas
