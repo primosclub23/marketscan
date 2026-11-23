@@ -148,6 +148,13 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
 .toast.show{opacity:1;transform:translateX(-50%)}
 
 /* ── Estado de válvulas (maniobra) ── */
+.mlegend{position:absolute;left:12px;top:12px;display:none;gap:14px;align-items:center;background:rgba(12,15,18,.9);border:1px solid var(--line2);border-radius:5px;padding:8px 12px;font-family:var(--cond);font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--tx);pointer-events:none}
+.app.man .mlegend{display:flex}
+.mlegend span{display:flex;align-items:center;gap:7px}
+.stage.paper .mlegend{background:rgba(255,255,255,.94);border-color:#d6d2c7;color:#222}
+details.vlist summary{cursor:pointer;font-family:var(--cond);font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx2);margin:10px 0 4px;list-style:none}
+details.vlist summary::before{content:'▸ ';color:var(--hz)}
+details.vlist[open] summary::before{content:'▾ '}
 .stepper{display:flex;align-items:center;gap:3px;background:var(--ui);border:1px solid var(--line2);border-radius:5px;padding:4px}
 .stepper button{width:26px;height:30px;border-radius:4px;color:var(--tx2);font-size:11px;flex:none}
 .stepper button:hover{background:var(--ui4);color:var(--tx)}
@@ -373,6 +380,7 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
     <button class="flowbtn" id="bFlow" title="Animar el flujo (tecla A)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg>Ver flujo</button>
     <div class="zoom"><button id="zOut" title="Alejar">−</button><button class="z" id="zFit" title="Ajustar a pantalla (0)">100%</button><button id="zIn" title="Acercar">+</button></div>
     <div class="insp" id="insp" hidden></div>
+    <div class="mlegend" id="mlegend"></div>
     <div id="pop" hidden></div>
     <input id="inl" type="text" spellcheck="false">
   </main>
@@ -1631,7 +1639,7 @@ function stepRow(s,i){
   const cls=(RMcur===s.id?' cur':'')+(RMfut.has(s.id)?' future':'');
   return`<div class="st ${s.phase}${s.done?' done':''}${cls}" data-sid="${s.id}"><button class="num" data-mact="done" title="Marcar como hecho">${s.done?'✓':i+1}</button><div class="tx"><b><i style="background:${A.k}"></i>${esc(s.act==='nota'?'Nota':A.n)}</b>${lbl?`<em>${esc(lbl)}</em>`:''}<input type="text" data-mf="note" placeholder="${s.act==='nota'?'Escribe la nota…':'Observaciones'}" value="${esc(s.note)}"></div><div class="ops"><button data-mact="up" title="Subir">▲</button><button data-mact="down" title="Bajar">▼</button><button data-mact="del" title="Quitar">✕</button></div></div>`;
 }
-let RMcur=null,RMfut=new Set();
+let RMcur=null,RMfut=new Set(),vlistOpen=false;
 function valveSection(m){
   const seq=manSeq(m,phase),N=seq.length,k=manView==null?N:manView,ms=manState(m,phase,k).st;
   const vs=S.items.filter(i=>i.type==='sym'&&CLOSABLE.includes(i.kind)),cl=vs.filter(i=>ms[i.id]==='closed'),op=vs.filter(i=>ms[i.id]!=='closed');
@@ -1641,13 +1649,17 @@ function valveSection(m){
   const lbl=k===0?'Estado inicial del plano':`Tras ${st.phase==='a'?'el paso '+k:'normalizar '+(k-na)}: ${esc(stepText(st))}${targetLabel(st)?' '+esc(targetLabel(st)):''}`;
   return`<section class="sec mf"><div class="sh"><span class="n">03</span><h3>Estado de válvulas</h3></div>
   <div class="stepper"><button data-mact="v0" title="Estado inicial">⏮</button><button data-mact="vprev" title="Paso anterior">◀</button><span>${lbl}<small>${k} / ${N}${manView==null?' · final':''}</small></span><button data-mact="vnext" title="Paso siguiente">▶</button><button data-mact="vend" title="Estado final">⏭</button></div>
+  <div class="astat" style="margin-top:8px"><div><b style="color:${VO()}">${op.length}</b><span>Abiertas</span></div><div><b style="color:${VC()}">${cl.length}</b><span>Cerradas</span></div></div>
+  <details class="vlist"${vlistOpen?' open':''}><summary>Ver lista de válvulas</summary>
   <label>Cerradas · ${cl.length}</label><div class="vchips">${cl.map(chip).join('')||'<span class="anote">Ninguna</span>'}</div>
   <label>Abiertas · ${op.length}</label><div class="vchips">${op.map(chip).join('')||'<span class="anote">Ninguna</span>'}</div>
-  <p class="anote" style="margin-top:8px"><b style="color:var(--hz)">•</b> cambia en esta maniobra</p>
+  <p class="anote" style="margin-top:8px"><b style="color:var(--hz)">•</b> cambia en esta maniobra</p></details>
   <label>Colores</label>${seg('vconv',[['rc','Rojo = cerrada'],['vc','Verde = cerrada']],VCONV).replace(/data-act=/g,'data-mact=')}
   </section>`;
 }
+function bowIcon(c){return`<svg width="26" height="14" viewBox="0 0 26 14"><path d="M1,1 L13,7 L1,13 Z M25,1 L13,7 L25,13 Z" fill="${c}" stroke="${c}" stroke-linejoin="round"/></svg>`}
 function renderMan(){
+  $('#mlegend').innerHTML=`<span>${bowIcon(VO())}Abierta</span><span>${bowIcon(VC())}Cerrada</span><span><svg width="14" height="18" viewBox="-7 -10 14 20">${lockG(0,0)}</svg>Consignada</span><span><svg width="12" height="18"><path d="M6,5 V18" stroke="${RED}" stroke-width="4"/><circle cx="6" cy="5" r="4" fill="${RED}"/></svg>Ciego</span>`;
   const box=$('#asideMan');if(mode!=='man'){box.innerHTML='';return}
   const m=M();
   if(!m){box.innerHTML=`<section class="sec"><div class="sh"><span class="n">01</span><h3>Maniobra</h3></div><div class="empty">Prepara aquí el aislamiento de un equipo para un trabajo: qué válvulas cerrar y consignar, dónde poner ciegos, qué drenar y purgar. Después sacas la hoja de maniobra para imprimir y firmar.</div><div class="mrow"><button class="btn pri wide" data-mact="new">+ Nueva maniobra</button><button class="btn sm wide" data-mact="sample">Ver ejemplo (carga el plano de muestra)</button></div></section>`;return}
@@ -1699,6 +1711,7 @@ $('#asideMan').addEventListener('input',e=>{
   else m[f]=e.target.value;
 });
 $('#asideMan').addEventListener('change',()=>commit());
+$('#asideMan').addEventListener('toggle',e=>{if(e.target.matches('details.vlist'))vlistOpen=e.target.open},true);
 function setMode(md){
   if(drawingL)finishLine(); if(editing)finishEdit();
   mode=md;sel=null;tool='select';stamp=null;closePop();
