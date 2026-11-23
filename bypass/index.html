@@ -147,6 +147,14 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);opacity:0;transition:.25s;background:var(--hz);color:#111;font-family:var(--cond);font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:9px 16px;border-radius:4px;z-index:30;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%)}
 
+/* ── Flujo animado ── */
+.flow{animation:flowMove .9s linear infinite}
+@keyframes flowMove{to{stroke-dashoffset:-36}}
+.flowbtn{position:absolute;right:150px;bottom:12px;height:34px;display:flex;align-items:center;gap:7px;padding:0 12px;background:rgba(12,15,18,.86);border:1px solid var(--line);border-radius:4px;font-family:var(--cond);font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx2)}
+.flowbtn:hover{color:var(--tx);border-color:var(--line2)}
+.flowbtn.on{background:var(--hz);border-color:var(--hz);color:#111}
+.flowbtn svg{width:14px;height:14px}
+.stage.paper .flowbtn:not(.on){background:rgba(255,255,255,.9);border-color:#d6d2c7;color:#444}
 /* ── Imán ── */
 .snapring{transform-box:fill-box;transform-origin:center;animation:snapPulse .9s ease-out infinite}
 @keyframes snapPulse{0%{transform:scale(.55);opacity:1}100%{transform:scale(1.8);opacity:0}}
@@ -309,6 +317,7 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
       <b>Supr</b> borrar · <b>Ctrl+D</b> duplicar<br>
       <b>Rueda</b> zoom · <b>Espacio</b>+arrastrar mover<br>
       <b>Imán</b>: acerca y se engancha solo<br>
+      <b>A</b> ver el flujo animado<br>
       <b>Alt</b> sin imán / ángulo libre
     </div>
    </div>
@@ -324,6 +333,7 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
       <p>Pulsa <kbd>L</kbd> y haz clic para trazar una línea,<br>o arrastra un equipo desde el panel.</p>
     </div>
     <div class="status"><span class="pill" id="stTool"></span><span class="pill" id="stPos">X 0 · Y 0</span></div>
+    <button class="flowbtn" id="bFlow" title="Animar el flujo (tecla A)"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg>Ver flujo</button>
     <div class="zoom"><button id="zOut" title="Alejar">−</button><button class="z" id="zFit" title="Ajustar a pantalla (0)">100%</button><button id="zIn" title="Acercar">+</button></div>
     <div class="insp" id="insp" hidden></div>
     <div id="pop" hidden></div>
@@ -548,11 +558,81 @@ function junctions(lines,pal){
   }
   return dots.join('');
 }
+/* ════════ Flujo animado ════════
+   Recorre cada línea en su sentido. Se corta en válvulas cerradas y ciegos, y revive donde
+   entra otra línea viva (por ejemplo, el retorno de un bypass). Las líneas que salen de otra
+   heredan si el punto de partida está vivo. */
+let flowOn=false;
+const segLen=(a,b)=>Math.hypot(b[0]-a[0],b[1]-a[1]);
+function polyLen(p){let l=0;for(let i=0;i<p.length-1;i++)l+=segLen(p[i],p[i+1]);return l}
+function distAlong(p,q){
+  let acc=0;
+  for(let i=0;i<p.length-1;i++){
+    const a=p[i],b=p[i+1],l=segLen(a,b);
+    if(Math.abs(segLen(a,q)+segLen(q,b)-l)<.6)return acc+segLen(a,q);
+    acc+=l;
+  }
+  return -1;
+}
+function subPath(p,d0,d1){
+  const out=[];let acc=0;
+  for(let i=0;i<p.length-1;i++){
+    const a=p[i],b=p[i+1],l=segLen(a,b);
+    if(l>0&&acc+l>=d0&&acc<=d1){
+      const s0=Math.max(d0,acc),s1=Math.min(d1,acc+l),f=t=>[a[0]+(b[0]-a[0])*(t-acc)/l,a[1]+(b[1]-a[1])*(t-acc)/l];
+      if(!out.length)out.push(f(s0));out.push(f(s1));
+    }
+    acc+=l;
+  }
+  return out;
+}
+function flowIntervals(lines,mst){
+  const L=new Map();
+  for(const ln of lines)L.set(ln.id,{ln,len:polyLen(ln.pts),kills:[],merges:[],parents:[],iv:[],endLive:false});
+  for(const it of S.items){
+    if(it.type!=='sym')continue;
+    const k=it.kind,ms=MSTATE[it.id];
+    const shut=k==='ciego'?ms==='closed':(CLOSABLE.includes(k)&&!PURGA.includes(k)&&(ms?ms==='closed':!!it.closed));
+    if(!shut)continue;
+    for(const o of L.values()){const d=distAlong(o.ln.pts,[it.x,it.y]);if(d>=0)o.kills.push(d)}
+  }
+  if(mst)for(const b of mst.blinds){const o=L.get(b.target);if(o){const d=distAlong(o.ln.pts,[b.x,b.y]);if(d>=0)o.kills.push(d)}}
+  for(const o of L.values())for(const m of L.values()){
+    if(m===o)continue;
+    const e=m.ln.pts[m.ln.pts.length-1],d=distAlong(o.ln.pts,e);
+    if(d>=0)o.merges.push({d,m});
+    const st=o.ln.pts[0],dp=distAlong(m.ln.pts,st);
+    if(dp>=0&&!(Math.abs(dp-m.len)<.6))o.parents.push({m,d:dp});
+  }
+  const liveAt=(o,d)=>o.iv.some(([a,b])=>d>=a-.6&&d<=b+.6);
+  for(let pass=0;pass<8;pass++){
+    for(const o of L.values()){
+      let alive=o.parents.length?o.parents.some(pp=>liveAt(pp.m,pp.d)):!o.merges.some(x=>x.d<.6);
+      const ev=o.kills.map(d=>({d,k:1})).concat(o.merges.filter(x=>x.m.endLive).map(x=>({d:x.d,k:0}))).sort((a,b)=>a.d-b.d||b.k-a.k);
+      const iv=[];let cur=0;
+      for(const e of ev){if(e.k&&alive){iv.push([cur,e.d]);alive=false}else if(!e.k&&!alive){cur=e.d;alive=true}}
+      if(alive)iv.push([cur,o.len]);
+      o.iv=iv;o.endLive=alive;
+    }
+  }
+  return L;
+}
+function drawFlow(lines,pal,mst){
+  let s='';
+  for(const o of flowIntervals(lines,mst).values()){
+    const w=o.ln.weight==='b'?4.5:2.6;
+    for(const[a,b]of o.iv){if(b-a<3)continue;const p=subPath(o.ln.pts,a,b);if(p.length<2)continue;
+      s+=`<path class="flow" d="${pathD(p)}" fill="none" stroke="${pal.paper}" stroke-width="${w+.4}" stroke-dasharray="6 12" stroke-linecap="butt" stroke-linejoin="round" pointer-events="none"/>`}
+  }
+  return s;
+}
 function renderItems(pal,hit,man){
   const mst=man?manState(man.m,man.phase):null; MSTATE=mst?mst.st:{};
   const lines=S.items.filter(i=>i.type==='line');
   VSEGS=[];for(const l of lines)for(let i=0;i<l.pts.length-1;i++){const a=l.pts[i],b=l.pts[i+1];if(a[0]===b[0]&&a[1]!==b[1])VSEGS.push({id:l.id,x:a[0],y0:Math.min(a[1],b[1]),y1:Math.max(a[1],b[1])})}
-  let s=lines.map(l=>drawLine(l,pal,hit)).join('')+junctions(lines,pal);
+  let s=lines.map(l=>drawLine(l,pal,hit)).join('');
+  if(hit&&flowOn)s+=drawFlow(lines,pal,mst);
+  s+=junctions(lines,pal);
   for(const it of S.items){
     if(it.type==='sym')s+=drawSym(it,pal,hit);
     else if(it.type==='text')s+=drawText(it,pal);
@@ -560,6 +640,7 @@ function renderItems(pal,hit,man){
     else if(it.type==='title')s+=drawTitle(it,pal);
   }
   for(const it of S.items)if(it.type==='hose')s+=drawHose(it,pal,hit);
+  if(hit&&flowOn)for(const h of S.items)if(h.type==='hose'&&MSTATE[h.id]!=='off'){const q=hoseCtrl(h.a,h.b);s+=`<path class="flow" d="M${h.a[0]},${h.a[1]} Q${q[0]},${q[1]} ${h.b[0]},${h.b[1]}" fill="none" stroke="${pal.paper}" stroke-width="2.6" stroke-dasharray="6 12" opacity=".8" pointer-events="none"/>`}
   if(mst)s+=drawManOverlay(man,mst,pal);
   return s;
 }
@@ -1145,7 +1226,7 @@ document.addEventListener('keydown',e=>{
   if(mod&&k==='d'){e.preventDefault();dupSel();return}
   if(mod)return;
   if(mode==='man'){
-    if(e.key==='Escape')closePop(); else if(k==='0')fit(); else if(k==='+'||k==='=')zoomAt(1.2); else if(k==='-')zoomAt(1/1.2);
+    if(e.key==='Escape')closePop(); else if(k==='a')toggleFlow(); else if(k==='0')fit(); else if(k==='+'||k==='=')zoomAt(1.2); else if(k==='-')zoomAt(1/1.2);
     else if(e.key===' '){spaceDown=true;stage.classList.add('panning');e.preventDefault()}
     return;
   }
@@ -1155,6 +1236,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();delSel();return}
   if(k==='v')setTool('select'); else if(k==='l')setTool('line'); else if(k==='t')setTool('text'); else if(k==='h')setTool('hand');
   else if(k==='c'){const it=sel&&get(sel);if(it&&it.type==='sym'&&CLOSABLE.includes(it.kind)){it.closed=!it.closed;commit();renderAll()}}
+  else if(k==='a')toggleFlow();
   else if(k==='r')rotSel(); else if(k==='f')flipSel();
   else if(k==='0')fit(); else if(k==='+'||k==='=')zoomAt(1.2); else if(k==='-')zoomAt(1/1.2);
   else if(/^[1-9]$/.test(k)&&S.fluids[+k-1])setFluid(S.fluids[+k-1].id);
@@ -1169,6 +1251,8 @@ document.addEventListener('keyup',e=>{if(e.key===' '){spaceDown=false;stage.clas
 $('#docName').addEventListener('input',e=>{S.name=e.target.value;renderCanvas()});
 $('#docName').addEventListener('change',()=>commit());
 $('#bUndo').onclick=undo; $('#bRedo').onclick=redo;
+function toggleFlow(){flowOn=!flowOn;$('#bFlow').classList.toggle('on',flowOn);renderCanvas();toast(flowOn?'Flujo animado':'Flujo parado')}
+$('#bFlow').onclick=toggleFlow;
 $('#zIn').onclick=()=>zoomAt(1.25); $('#zOut').onclick=()=>zoomAt(.8); $('#zFit').onclick=fit;
 $$('[data-theme]').forEach(b=>b.onclick=()=>setTheme(b.dataset.theme));
 function setTheme(t){theme=t;P=THEMES[t];try{localStorage.setItem(TKEY,t)}catch(e){}stage.style.backgroundColor=P.paper;$$('[data-theme]').forEach(b=>b.classList.toggle('on',b.dataset.theme===t));applyView();renderAll()}

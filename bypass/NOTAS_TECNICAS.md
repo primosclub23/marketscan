@@ -45,6 +45,11 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
   - **Imán por cuerpo**: si llevas una línea o manguera dentro de un equipo, `bestPort()` elige la boca que la deja más recta. Primero las que quedan alineadas con el origen (sin codos), luego las que se encaran con un solo codo, y entre iguales la más cercana al cursor. Para elegir a propósito una boca concreta, acércate a ella desde fuera del equipo.
   - **Cuadraditos de conexión**: las bocas se pintan como cuadraditos. Libres: amarillos huecos. Conectadas: verdes. Objetivo: amarillo relleno con anillo. Salen todos al dibujar o arrastrar; con la herramienta Mover salen solo los del equipo bajo el ratón (`hoverId`). Un clic en uno empieza una línea desde esa boca.
   - Con `Alt` se desactiva el imán.
+- **Flujo animado** (botón «Ver flujo» o tecla `A`): rayitas que avanzan en el sentido de cada línea (`drawFlow()`).
+  - `flowIntervals()` calcula qué tramos de cada línea tienen flujo. Se cortan en válvulas cerradas y ciegos, y reviven donde entra otra línea con flujo (por ejemplo, el retorno de un bypass).
+  - Una línea que sale de otra hereda el flujo si su punto de partida lo tiene.
+  - En modo maniobra usa el estado de la maniobra; en modo dibujo, el de las válvulas del plano.
+  - Las mangueras desconectadas no se animan. No sale en las exportaciones.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
 ## Pendiente o ideas
