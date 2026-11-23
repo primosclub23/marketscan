@@ -42,6 +42,7 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
   - `magnet()` busca, por este orden: bocas, extremos de línea o manguera y, si no hay nada, un punto sobre una línea (bifurcación).
   - `snapSym()` monta las válvulas y purgas sobre la línea y las gira; en los equipos, encaja sus bocas en los extremos libres.
   - `findGlue()` y `applyGlue()` hacen que, al mover un equipo, las líneas y mangueras conectadas le sigan, manteniendo los ángulos rectos con codos automáticos (`moveEnd()`).
+  - **Imán por cuerpo**: si llevas una línea o manguera dentro de un equipo, `bestPort()` elige la boca que la deja más recta. Primero las que quedan alineadas con el origen (sin codos), luego las que se encaran con un solo codo, y entre iguales la más cercana al cursor. Para elegir a propósito una boca concreta, acércate a ella desde fuera del equipo.
   - Con `Alt` se desactiva el imán.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 

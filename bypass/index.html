@@ -407,7 +407,7 @@ const HOSES={agua:{n:'Manguera de agua',c:'#22B35E'},n2:{n:'Manguera de N₂',c:
 const PURGA=['venteo','drenaje'];
 /* Bocas de conexión (coordenadas locales). [x,y] o [x,y,nx,ny] con la dirección hacia fuera. */
 const PORTS={
-  deposito_v:[[0,-55],[0,55],[-30,-20],[-30,20],[30,-20],[30,20]],
+  deposito_v:[[0,-55],[0,55],[-30,0],[30,0],[-30,-30],[-30,30],[30,-30],[30,30]],
   deposito_h:[[-65,0],[65,0],[-40,-28,0,-1],[0,-28],[40,-28,0,-1],[0,28],[40,28,0,1]],
   deposito_bota:[[-65,0],[65,0],[-40,-28,0,-1],[0,-28],[40,-28,0,-1],[0,28],[40,28,0,1],[-30,40]],
   columna:[[0,-110],[0,110],[-28,-60,-1,0],[28,-60,1,0],[-28,0],[28,0],[-28,60,-1,0],[28,60,1,0]],
@@ -417,7 +417,7 @@ const PORTS={
   horno:[[-50,20],[50,20],[0,70],[0,-90]],
   compresor:[[-30,0],[30,0]],
   bomba:[[-20,0],[30,-20,1,0]],
-  tanque:[[-55,10],[55,10],[0,-40],[0,40]],
+  tanque:[[-55,10],[55,10],[-55,30],[55,30],[0,-40],[0,40]],
   manual:[[-20,0],[20,0]],control:[[-20,0],[20,0]],motor:[[-20,0],[20,0]],retencion:[[-20,0],[20,0]],
   tresvias:[[-20,0],[20,0],[0,24]],
   psv:[[0,24],[24,0]],
@@ -617,6 +617,7 @@ function renderOver(){
         :`<circle cx="${pt.p[0]}" cy="${pt.p[1]}" r="${3.8/k}" fill="${P.paper}" stroke="${sc}" stroke-width="${1.5/k}" opacity=".9" pointer-events="none"/>`;
     }
   }
+  if(snapT&&snapT.body&&mode==='draw'){const o=get(snapT.id);if(o){const b=rbb(o);s+=`<rect x="${o.x+b[0]-7}" y="${o.y+b[1]-7}" width="${b[2]-b[0]+14}" height="${b[3]-b[1]+14}" rx="${6/k}" fill="${sc}" fill-opacity=".06" stroke="${sc}" stroke-width="${1.5/k}" stroke-dasharray="${6/k} ${4/k}" pointer-events="none"/>`}}
   if(snapT&&mode==='draw'){
     const q=snapT.p,cc=snapT.kind==='seg'?'#38BDF8':sc,lbl=snapT.kind==='seg'?'BIFURCAR':snapT.kind==='port'?'CONECTAR':'UNIR';
     s+=`<circle cx="${q[0]}" cy="${q[1]}" r="${5/k}" fill="${cc}" pointer-events="none"/><circle class="snapring" cx="${q[0]}" cy="${q[1]}" r="${12/k}" fill="none" stroke="${cc}" stroke-width="${2.5/k}" pointer-events="none"/><text x="${q[0]+15/k}" y="${q[1]-13/k}" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${10.5/k}" fill="${cc}" stroke="${P.paper}" stroke-width="${3.5/k}" paint-order="stroke" pointer-events="none">${lbl}</text>`;
@@ -761,8 +762,34 @@ function portsOf(it){
     const pp=rt(q[0]*f*s,q[1]*s);return{p:[it.x+pp[0],it.y+pp[1]],n:rt(n0[0]*f,n0[1])};
   });
 }
+/* La mejor boca de un equipo para llegar desde «from»: primero las que dejan la línea recta,
+   luego las que se encaran con un solo codo, y entre iguales la más cercana al cursor. */
+function bestPort(it,p,from){
+  let best=null,bs=1e9;
+  for(const pt of portsOf(it)){
+    let sc=Math.hypot(pt.p[0]-p[0],pt.p[1]-p[1]);
+    if(from){
+      const v=[from[0]-pt.p[0],from[1]-pt.p[1]],facing=v[0]*pt.n[0]+v[1]*pt.n[1]>0,side=Math.abs(pt.n[0])>.5;
+      const aligned=facing&&(side?Math.abs(v[1])<.5:Math.abs(v[0])<.5);
+      sc+=aligned?0:facing?120:400;
+    }
+    if(sc<bs){bs=sc;best=pt}
+  }
+  return best;
+}
 function magnet(p,o={}){
   const R=18/view.k;let best=null,bd=R;
+  if(o.from&&o.body!==false){
+    // cursor dentro del cuerpo de un equipo: manda la boca que deja la línea más recta
+    for(let i=S.items.length-1;i>=0;i--){
+      const it=S.items[i];
+      if(it.type!=='sym'||it.id===o.exclude||it.id===o.skip||isInline(it.kind)||!PORTS[it.kind]&&it.kind!=='limite')continue;
+      const b=rbb(it);
+      if(p[0]<it.x+b[0]||p[0]>it.x+b[2]||p[1]<it.y+b[1]||p[1]>it.y+b[3])continue;
+      const pt=bestPort(it,p,o.from);
+      if(pt)return{p:pt.p,kind:'port',n:pt.n,id:it.id,body:true};
+    }
+  }
   const cons=(q,kind,x)=>{const d=Math.hypot(q[0]-p[0],q[1]-p[1]);if(d<bd){bd=d;best=Object.assign({p:[q[0],q[1]],kind},x)}};
   for(const it of S.items){
     if(it.id===o.exclude)continue;
@@ -770,7 +797,19 @@ function magnet(p,o={}){
     else if(it.type==='line'){cons(it.pts[0],'end');cons(it.pts[it.pts.length-1],'end')}
     else if(it.type==='hose'){cons(it.a,'end');cons(it.b,'end')}
   }
-  if(best||o.segs===false)return best;
+  if(best)return best;
+  if(o.body!==false){
+    const M=14/view.k;
+    for(let i=S.items.length-1;i>=0;i--){
+      const it=S.items[i];
+      if(it.type!=='sym'||it.id===o.exclude||it.id===o.skip||isInline(it.kind)||!PORTS[it.kind]&&it.kind!=='limite')continue;
+      const b=rbb(it);
+      if(p[0]<it.x+b[0]-M||p[0]>it.x+b[2]+M||p[1]<it.y+b[1]-M||p[1]>it.y+b[3]+M)continue;
+      const pt=bestPort(it,p,o.from);
+      if(pt)return{p:pt.p,kind:'port',n:pt.n,id:it.id,body:true};
+    }
+  }
+  if(o.segs===false)return best;
   for(const L of S.items)if(L.type==='line'&&L.id!==o.exclude){const q=nearestOnLine(L,p);cons([q[0],q[1]],'seg',{vert:q[2],id:L.id})}
   return best;
 }
@@ -915,13 +954,18 @@ let drawingH=null, hoseKind='agua', hoseCur=null, snapT=null, ghostRaw=null;
 function lineCursor(p,alt){
   const g=sp(p),l=drawingL.pts[drawingL.pts.length-1];
   if(alt){drawingL.cur=[g];snapT=null;return}
-  const m=magnet(p);snapT=m;
+  const m=magnet(p,{from:l,skip:drawingL.startId});snapT=m;
   if(m){
     const t=m.p;
     if(eq(t,l)){drawingL.cur=[t];snapT=null;return}
+    if(m.kind==='port'&&m.n){
+      const n=m.n,v=[l[0]-t[0],l[1]-t[1]],side=Math.abs(n[0])>.5,facing=v[0]*n[0]+v[1]*n[1]>0;
+      if(facing){drawingL.cur=(side?Math.abs(v[1])<.5:Math.abs(v[0])<.5)?[t]:[side?[l[0],t[1]]:[t[0],l[1]],t];return}
+      const st=[snap(t[0]+n[0]*30),snap(t[1]+n[1]*30)];
+      drawingL.cur=side?[[st[0],l[1]],[st[0],t[1]],t]:[[l[0],st[1]],[t[0],st[1]],t];return;
+    }
     if(t[0]===l[0]||t[1]===l[1]){drawingL.cur=[t];return}
-    const sideIn=m.n?Math.abs(m.n[0])>.5:false;
-    drawingL.cur=[sideIn?[l[0],t[1]]:[t[0],l[1]],t];return;
+    drawingL.cur=[[t[0],l[1]],t];return;
   }
   drawingL.cur=[Math.abs(g[0]-l[0])>=Math.abs(g[1]-l[1])?[g[0],l[1]]:[l[0],g[1]]];
 }
@@ -937,7 +981,7 @@ svg.addEventListener('pointerdown',e=>{
     closePop(); drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y}; return;
   }
   if(tool==='line'){
-    if(!drawingL){const m=e.altKey?null:magnet(p),q=m?m.p:g;drawingL={pts:[q],cur:[q]};if(m)snapFx(q,m);snapT=null;renderTools()}
+    if(!drawingL){const m=e.altKey?null:magnet(p),q=m?m.p:g;drawingL={pts:[q],cur:[q],startId:m&&m.id};if(m)snapFx(q,m);snapT=null;renderTools()}
     else{
       lineCursor(p,e.altKey);
       const last=drawingL.pts[drawingL.pts.length-1],cur=drawingL.cur;
@@ -951,7 +995,7 @@ svg.addEventListener('pointerdown',e=>{
     renderCanvas();return;
   }
   if(tool==='hose'){
-    const m=magnet(p),q=m?m.p:g; if(m)snapFx(q,m);
+    const m=magnet(p,{from:drawingH&&drawingH.a}),q=m?m.p:g; if(m)snapFx(q,m);
     if(!drawingH){drawingH={a:q};hoseCur=q;renderTools();renderOver();return}
     if(!eq(q,drawingH.a)){const it={id:uid(),type:'hose',kind:hoseKind,a:drawingH.a,b:q,tag:''};S.items.push(it);sel=it.id;commit()}
     drawingH=null;setTool('select');renderAll();return;
@@ -1021,7 +1065,7 @@ svg.addEventListener('pointermove',e=>{
     if(drawingL){lineCursor(p,e.altKey);ghostAt=drawingL.cur[drawingL.cur.length-1]}
     else{const m=e.altKey?null:magnet(p);snapT=m;ghostAt=m?m.p:g}
     renderOver();
-  } else if(tool==='hose'){const m=e.altKey?null:magnet(p);snapT=m;hoseCur=m?m.p:g;ghostAt=hoseCur;renderOver()}
+  } else if(tool==='hose'){const m=e.altKey?null:magnet(p,{from:drawingH&&drawingH.a});snapT=m;hoseCur=m?m.p:g;ghostAt=hoseCur;renderOver()}
   else if(tool==='stamp'){ghostAt=g;ghostRaw=p;renderOver()}
 });
 function endDrag(){
