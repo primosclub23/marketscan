@@ -105,6 +105,8 @@ aside{background:var(--ui2);border-right:1px solid var(--line);overflow-y:auto;o
 .stage.t-hand #cv,.stage.panning #cv{cursor:grab}
 .stage.t-select #cv [data-id]{cursor:move}
 .stage.t-select #cv [data-h]{cursor:pointer}
+.stage.t-select #cv [data-h="rs:0"],.stage.t-select #cv [data-h="rs:2"]{cursor:nwse-resize}
+.stage.t-select #cv [data-h="rs:1"],.stage.t-select #cv [data-h="rs:3"]{cursor:nesw-resize}
 .stage #cv [data-port]{cursor:crosshair}
 .tg{font-family:var(--mono);font-weight:700}
 .hint{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;color:var(--tx3)}
@@ -1079,7 +1081,7 @@ section{padding:84px 0;border-top:1px solid var(--line)}
     </section>
     <div class="foot">
       <b>L</b> línea · <b>V</b> mover · <b>T</b> texto · <b>H</b> mano<br>
-      <b>1–9</b> fluido · <b>C</b> abrir/cerrar · <b>R</b> girar · <b>F</b> espejo<br>
+      <b>1–9</b> fluido · <b>C</b> abrir/cerrar · <b>[ ]</b> tamaño · <b>R</b> girar · <b>F</b> espejo<br>
       <b>Supr</b> borrar · <b>Ctrl+D</b> duplicar<br>
       <b>Arrastrar</b> en vacío: seleccionar varios<br>
       <b>Mayús+clic</b> añadir · <b>Ctrl+C/V</b> copiar<br>
@@ -1778,7 +1780,10 @@ function renderOver(){
   if(drag&&drag.t==='box'){const x=Math.min(drag.p0[0],drag.p1[0]),y=Math.min(drag.p0[1],drag.p1[1]);s+=`<rect x="${x}" y="${y}" width="${Math.abs(drag.p1[0]-drag.p0[0])}" height="${Math.abs(drag.p1[1]-drag.p0[1])}" fill="${sc}" fill-opacity=".08" stroke="${sc}" stroke-width="${sw}" stroke-dasharray="${5/k} ${3/k}" pointer-events="none"/>`}
   const it=sel&&get(sel);
   if(it){
-    if(it.type==='sym'){const b=rbb(it);s+=`<rect x="${it.x+b[0]-6}" y="${it.y+b[1]-6}" width="${b[2]-b[0]+12}" height="${b[3]-b[1]+12}" fill="none" stroke="${sc}" stroke-width="${sw}" stroke-dasharray="${5/k} ${4/k}" pointer-events="none"/>`}
+    if(it.type==='sym'){const b=rbb(it),x0=it.x+b[0]-6,y0=it.y+b[1]-6,x1=it.x+b[2]+6,y1=it.y+b[3]+6,r=5/k;
+      s+=`<rect x="${x0}" y="${y0}" width="${x1-x0}" height="${y1-y0}" fill="none" stroke="${sc}" stroke-width="${sw}" stroke-dasharray="${5/k} ${4/k}" pointer-events="none"/>`;
+      if(mode==='draw'&&!VIEWER)[[x0,y0],[x1,y0],[x1,y1],[x0,y1]].forEach((q,i)=>{s+=`<rect data-h="rs:${i}" x="${q[0]-r}" y="${q[1]-r}" width="${2*r}" height="${2*r}" fill="${P.paper}" stroke="${sc}" stroke-width="${sw*1.2}"><title>Arrastra para cambiar el tamaño</title></rect>`});
+      if(drag&&drag.t==='resize')s+=`<text x="${x1+8/k}" y="${y0-6/k}" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${11/k}" fill="${sc}" stroke="${P.paper}" stroke-width="${3/k}" paint-order="stroke">${Math.round((it.scale||1)*100)}%</text>`;}
     else if(it.type==='line'){
       const p=it.pts, r=4.5/k;
       if(selSeg!=null&&p[selSeg+1])s+=`<path d="M${p[selSeg][0]},${p[selSeg][1]} L${p[selSeg+1][0]},${p[selSeg+1][1]}" stroke="${sc}" stroke-width="${10/k}" stroke-opacity=".45" stroke-linecap="round" pointer-events="none"/>`;
@@ -1885,7 +1890,7 @@ function renderInspector(){
     const d=SYM[it.kind]; title=d.n; code=d.g==='eq'?'EQ':d.g==='va'?'VLV':'ANT';
     body+=`<div><label>${d.inside?'Texto':'Tag'}</label><input type="text" data-f="tag" value="${esc(it.tag)}" placeholder="${d.g==='va'?'Ej: XV-101':'Ej: D-101'}"></div>`;
     body+=`<div><label>Color</label>${swatches(it.fluid,'fluid')}</div>`;
-    body+=`<div><label>Tamaño</label>${seg('scale',[[0.75,'S'],[1,'M'],[1.35,'L'],[1.7,'XL']],it.scale||1)}</div>`;
+    body+=`<div><label>Tamaño · ${Math.round((it.scale||1)*100)}% <span style="text-transform:none;letter-spacing:0">(esquinas o teclas [ ])</span></label>${seg('scale',[[0.75,'S'],[1,'M'],[1.35,'L'],[1.7,'XL']],it.scale||1)}<div class="row" style="margin-top:6px"><button class="btn" data-act="smaller">− Más pequeño</button><button class="btn" data-act="bigger">+ Más grande</button></div></div>`;
     if(it.kind==='retencion')body+=`<div><label>Sentido de paso</label><div class="row"><button class="btn" data-act="flip">⇄ Invertir sentido</button></div></div>`;
     if(CLOSABLE.includes(it.kind))body+=`<div><label>Posición <span style="text-transform:none;letter-spacing:0">(tecla C)</span></label>${seg('closed',[[0,'Abierta'],[1,'Cerrada']],it.closed?1:0)}</div>`;
     body+=`<div class="row"><button class="btn" data-act="rot">↻ Girar</button><button class="btn" data-act="flip">⇋ Espejo</button></div>`;
@@ -2186,6 +2191,21 @@ function straighten(it){
   while(p.length>2&&segLen(p[p.length-2],p[p.length-1])<35){p.pop();k++}
   it.pts=simplify(p);selV=null;selSeg=null;commit();renderAll();toast(k?'Línea enderezada':'La línea ya estaba recta');
 }
+function glueByPort(it){
+  const ps=portsOf(it),at=q=>ps.findIndex(pt=>Math.abs(pt.p[0]-q[0])<.5&&Math.abs(pt.p[1]-q[1])<.5),out=[];
+  for(const o of S.items){
+    if(o.type==='line'){const ends=[];const k0=at(o.pts[0]),k1=at(o.pts[o.pts.length-1]);if(k0>=0)ends.push({first:true,k:k0});if(k1>=0&&o.pts.length>1)ends.push({first:false,k:k1});if(ends.length)out.push({type:'line',id:o.id,ends,orig:clone(o.pts)})}
+    else if(o.type==='hose'){const ends=[];for(const e of['a','b']){const k=at(o[e]);if(k>=0)ends.push({e,k})}if(ends.length)out.push({type:'hose',id:o.id,ends,orig:{a:[...o.a],b:[...o.b]}})}
+  }
+  return out;
+}
+function resizeGlue(it,d){
+  const now=portsOf(it),dv=k=>[now[k].p[0]-d.ports0[k].p[0],now[k].p[1]-d.ports0[k].p[1]];
+  for(const g of d.glue){const o=get(g.id);if(!o)continue;
+    if(g.type==='line'){let pts=clone(g.orig);for(const e of g.ends)pts=moveEnd(pts,e.first?0:pts.length-1,dv(e.k));o.pts=pts}
+    else for(const e of g.ends){const v=dv(e.k);o[e.e]=[g.orig[e.e][0]+v[0],g.orig[e.e][1]+v[1]]}}
+}
+function scaleSel(f){const it=sel&&get(sel);if(!it||it.type!=='sym')return;const d={glue:glueByPort(it),ports0:portsOf(it)};it.scale=Math.max(.4,Math.min(3,Math.round((it.scale||1)*f*20)/20));resizeGlue(it,d);for(const g of d.glue)if(g.type==='line'){const L=get(g.id);if(L)L.pts=simplify(L.pts)}commit();renderAll();toast('Tamaño '+Math.round(it.scale*100)+'%')}
 function delSel(){const ids=new Set(selIds());if(!ids.size)return;S.items=S.items.filter(i=>!ids.has(i.id));sel=null;msel.clear();commit();renderAll()}
 function dupSel(){
   if(msel.size){pasteItems([...msel].map(get).filter(Boolean),20);return}
@@ -2318,6 +2338,7 @@ svg.addEventListener('pointerdown',e=>{
   if(h&&sel){
     const it=get(sel),[kind,si]=h.dataset.h.split(':');let i=+si;
     if(kind==='he'){drag={t:'hend',end:i?'b':'a',moved:false};return}
+    if(kind==='rs'&&it.type==='sym'){const c=[it.x,it.y];drag={t:'resize',c,d0:Math.max(8,Math.hypot(p[0]-c[0],p[1]-c[1])),s0:it.scale||1,glue:glueByPort(it),ports0:portsOf(it),moved:false};return}
     if(kind==='v'){selV=i;selSeg=null;selFor=sel;renderOver();renderInspector();drag={t:'vtx',i,orig:clone(it.pts)};return}
     selSeg=i;selV=null;selFor=sel;renderOver();renderInspector();
     if(it.pts[i][0]!==it.pts[i+1][0]&&it.pts[i][1]!==it.pts[i+1][1])return; // tramo diagonal: solo se selecciona
@@ -2345,6 +2366,8 @@ svg.addEventListener('pointermove',e=>{
   if(drag){
     if(drag.t==='pan'){view.x=drag.vx+e.clientX-drag.sx;view.y=drag.vy+e.clientY-drag.sy;applyView();return}
     if(drag.t==='box'){drag.p1=p;renderOver();return}
+    if(drag.t==='resize'){const it=get(sel);if(!it)return;let sc2=drag.s0*Math.hypot(p[0]-drag.c[0],p[1]-drag.c[1])/drag.d0;sc2=Math.max(.4,Math.min(3,Math.round(sc2*20)/20));
+      if(sc2!==it.scale){it.scale=sc2;drag.moved=true;resizeGlue(it,drag)}renderCanvas();return}
     if(drag.t==='mmove'){const dx=snap(p[0]-drag.p0[0]),dy=snap(p[1]-drag.p0[1]);if(dx||dy)drag.moved=true;for(const[i,o]of drag.origs){const it=get(i);if(it)moveItem(it,o,dx,dy)}renderCanvas();return}
     const it=get(sel); if(!it)return;
     if(drag.t==='move'){
@@ -2394,6 +2417,7 @@ function endDrag(){
     setMulti(d.add?[...new Set([...selIds(),...inside])]:inside);renderAll();return;
   }
   if(d.t==='mmove'){if(d.moved){commit();renderAll()}return}
+  if(d.t==='resize'){for(const g of d.glue)if(g.type==='line'){const L=get(g.id);if(L)L.pts=simplify(L.pts)}if(d.moved){commit();renderAll()}else renderOver();return}
   if(d.t==='seg'||d.t==='vtx'){const it=get(sel);if(it)it.pts=simplify(it.pts);if(d.moved){selSeg=null}}
   if(d.t==='move'&&!d.moved&&d.wasSel){const it=get(sel);if(it&&it.type==='line'){selSeg=nearestSeg(it.pts,d.p0);selV=null;selFor=sel;renderOver();renderInspector();return}}
   if(d.t==='move'&&d.glue)for(const gl of d.glue)if(gl.type==='line'){const L=get(gl.id);if(L)L.pts=simplify(L.pts)}
@@ -2434,9 +2458,11 @@ $('#insp').addEventListener('click',e=>{
   if(a==='fluid'){setFluid(v);return}
   if(a==='del')return delSel(); if(a==='dup')return dupSel();
   if(a==='rot')rotSel(); else if(a==='flip')flipSel();
-  else if(a==='scale')it.scale=+v; else if(a==='size')it.size=+v;
+  else if(a==='scale'){const d={glue:glueByPort(it),ports0:portsOf(it)};it.scale=+v;resizeGlue(it,d);for(const g of d.glue)if(g.type==='line'){const L=get(g.id);if(L)L.pts=simplify(L.pts)}} else if(a==='size')it.size=+v;
   else if(a==='dash')it.dash=v==='1'; else if(a==='closed')it.closed=v==='1'; else if(a==='hkind'){it.kind=v;hoseKind=v} else if(a==='weight')it.weight=v; else if(a==='arrow')it.arrow=v==='1';
   else if(a==='rev')it.pts.reverse();
+  else if(a==='smaller')return scaleSel(1/1.15);
+  else if(a==='bigger')return scaleSel(1.15);
   else if(a==='straight')return straighten(it);
   else if(a==='delv'){if(selV!=null)delVertex(it,selV);return}
   else if(a==='delseg'){if(selSeg!=null)delSegment(it,selSeg);return}
@@ -2479,6 +2505,7 @@ document.addEventListener('keydown',e=>{
   if(k==='v')setTool('select'); else if(k==='l')setTool('line'); else if(k==='t')setTool('text'); else if(k==='h')setTool('hand');
   else if(k==='c'){const it=sel&&get(sel);if(it&&it.type==='sym'&&CLOSABLE.includes(it.kind)){it.closed=!it.closed;commit();renderAll()}}
   else if(k==='a')toggleFlow();
+  else if(e.key==='['){scaleSel(1/1.15)} else if(e.key===']'){scaleSel(1.15)}
   else if(k==='r')rotSel(); else if(k==='f')flipSel();
   else if(k==='0')fit(); else if(k==='+'||k==='=')zoomAt(1.2); else if(k==='-')zoomAt(1/1.2);
   else if(/^[1-9]$/.test(k)&&S.fluids[+k-1])setFluid(S.fluids[+k-1].id);
