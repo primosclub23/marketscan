@@ -88,6 +88,14 @@ El editor: HTML, CSS y JS sin dependencias ni paso de compilación. Las fuentes 
 - **Maniobras del plano**: lista en la sección 01 del modo maniobra, con permiso, nº de pasos y fecha (`created`). Se pueden duplicar (copia con ids nuevos y pasos sin marcar) y borrar.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
+## Animaciones de la web
+
+- Tuberías de fondo en la portada (`#heroBg`) que se dibujan solas (`pathLength=1` + `stroke-dashoffset`) y se mueven con parallax al hacer scroll. El scroll es el de `#landing`, no el de la ventana.
+- Entrada escalonada del texto, plano de ejemplo flotando que se inclina en 3D con el ratón, cinta en movimiento (`.mq`), cifras que cuentan (`data-count`) y barra de progreso (`#lProg`).
+- Apariciones al hacer scroll: `IntersectionObserver` con `root:#landing` añade `.in` a los elementos `.rv`, con retardo escalonado por grupo. Las tarjetas tienen un brillo que sigue al ratón (`--mx`/`--my`).
+- Comparador «Antes/Después» (`#cmpw`): dos SVG superpuestos, el de Bypass recortado con `clip-path: inset(0 0 0 var(--x))`. Se arrastra con puntero y hace un barrido automático al aparecer.
+- Con `prefers-reduced-motion` se desactiva todo el movimiento.
+
 ## Gratis / Pro y lista de espera
 
 - `isPro()`: `localStorage['bypass.pro']==='1'` o el visor. **Prototipo: el pago no está conectado**; «Activar Pro» de la ventana Pro lo activa en el navegador.
