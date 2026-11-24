@@ -970,7 +970,6 @@ function renderItems(pal,hit,man){
   const lines=S.items.filter(i=>i.type==='line');
   VSEGS=[];for(const l of lines)for(let i=0;i<l.pts.length-1;i++){const a=l.pts[i],b=l.pts[i+1];if(a[0]===b[0]&&a[1]!==b[1])VSEGS.push({id:l.id,x:a[0],y0:Math.min(a[1],b[1]),y1:Math.max(a[1],b[1])})}
   const RUN0=flowRun(mst),DES=designRun();buildArrows(RUN0,DES);
-  const BADCHK=DES.net.chks.filter(c=>DES.depth.has(c.down)&&(!DES.depth.has(c.up)||DES.depth.get(c.down)<DES.depth.get(c.up))).map(c=>c.it);
   let s=lines.map(l=>drawLine(l,pal,hit)).join('');
   const RUN=anim||(hit&&flowOn)?RUN0:null;
   if(anim)s=`<g opacity=".28">${s}</g>`+drawFlowFancy(RUN,pal,['line']);
@@ -983,7 +982,6 @@ function renderItems(pal,hit,man){
     else if(it.type==='title')s+=drawTitle(it,pal);
   }
   for(const it of S.items)if(it.type==='hose')s+=drawHose(it,pal,hit);
-  if(hit)for(const it of BADCHK){const b=rbb(it);s+=`<g pointer-events="none" transform="translate(${it.x+b[2]+12} ${it.y+b[1]-6})"><path d="M0,-10 L10,8 H-10 Z" fill="#F97316" stroke="${pal.paper}" stroke-width="2" stroke-linejoin="round"/><text y="5.5" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="11" fill="#111">!</text><text x="14" y="4" font-family="JetBrains Mono,monospace" font-weight="700" font-size="9.5" fill="#F97316" stroke="${pal.paper}" stroke-width="3" paint-order="stroke">¿AL REVÉS?</text></g>`}
   if(anim)s+=drawLiquids(RUN,pal)+drawFlowFancy(RUN,pal,['hose'])+drawAnimExtras(RUN,pal);
   else if(RUN)s+=drawFlow(RUN,pal,['hose','purga']);
   if(mst)s+=drawManOverlay(man,mst,pal);
