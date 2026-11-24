@@ -526,6 +526,40 @@ function rbb(it){
   return b.map(v=>v*s);
 }
 const pathD=p=>'M'+p.map(q=>q[0]+','+q[1]).join(' L');
+/* Flechitas a lo largo de la línea, en el sentido del flujo (ARROWS lo calcula renderItems con la red de flujo) */
+let ARROWS=new Map();
+function pointAt(p,d){let acc=0;for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1],l=segLen(a,b);if(acc+l>=d&&l>0){const t=(d-acc)/l;return{q:[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t],ang:Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI}}acc+=l}return null}
+function blockedAt(q){return S.items.some(o=>{if(o.type!=='sym'||o.kind==='instrumento')return false;const b=rbb(o),m=8;return q[0]>o.x+b[0]-m&&q[0]<o.x+b[2]+m&&q[1]>o.y+b[1]-m&&q[1]<o.y+b[3]+m})}
+function smallArrows(p,c,w){
+  const len=polyLen(p);if(len<36)return'';
+  const n=Math.max(1,Math.floor(len/120)),sc=w>3?1:.8;let s='';
+  for(let k=0;k<n;k++){
+    let d=(k+.5)*len/n,at=pointAt(p,d);
+    for(const off of[0,14,-14,28,-28]){const a2=pointAt(p,Math.min(len-6,Math.max(6,d+off)));if(a2&&!blockedAt(a2.q)){at=a2;break}if(off===-28)at=null}
+    if(at)s+=`<path transform="translate(${at.q[0]} ${at.q[1]}) rotate(${at.ang}) scale(${sc})" d="M5,0 L-6,-5 L-3,0 L-6,5 Z" fill="${c}" stroke="none" pointer-events="none"/>`;
+  }
+  return s;
+}
+/* Sentido de diseño: el que tendría el flujo con todo abierto y las PSV disparadas.
+   Se usa para orientar las flechitas de los tramos que ahora no tienen flujo. */
+function designRun(){
+  const saved=MSTATE,st={};
+  for(const it of S.items){if(it.type==='sym'&&(CLOSABLE.includes(it.kind)||it.kind==='psv'||it.kind==='ciego'))st[it.id]='open';else if(it.type==='hose')st[it.id]='on'}
+  MSTATE=st;const r=flowRun(null);MSTATE=saved;return r;
+}
+function buildArrows(run,des){
+  ARROWS=new Map();const done=new Map();
+  for(const o of run.oriented)if(o.e.kind==='line')done.set(o.e,o.fwd?o.e.pts:[...o.e.pts].reverse());
+  for(const e of run.net.edges){
+    if(e.kind!=='line')continue;let pts=done.get(e);
+    if(!pts){
+      pts=e.pts;const mid=pointAt(pts,polyLen(pts)/2);
+      if(mid&&des)for(const o of des.oriented){if(o.e.kind!=='line'||o.e.ln.id!==e.ln.id||distAlong(o.e.pts,mid.q)<0)continue;
+        const t=tangentAt(o.fwd?o.e.pts:[...o.e.pts].reverse(),mid.q),t0=tangentAt(pts,mid.q);if(t[0]*t0[0]+t[1]*t0[1]<0)pts=[...pts].reverse();break}
+    }
+    if(!ARROWS.has(e.ln.id))ARROWS.set(e.ln.id,[]);ARROWS.get(e.ln.id).push(pts);
+  }
+}
 function arrowAt(x,y,ang,c,w){const s=w>3?1.3:1;return `<path transform="translate(${x} ${y}) rotate(${ang}) scale(${s})" d="M0,0 L-13,-6 L-13,6 Z" fill="${c}" stroke="none"/>`}
 let VSEGS=[];
 function hopPath(it){
@@ -548,13 +582,7 @@ function drawLine(it,pal,hit){
   let s=`<g data-id="${it.id}">`;
   if(hit)s+=`<path d="${d}" fill="none" stroke="transparent" stroke-width="14" pointer-events="stroke"/>`;
   s+=`<path d="${dh}" fill="none" stroke="${c}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="${it.dash?'butt':'round'}"${it.dash?' stroke-dasharray="12 7"':''} pointer-events="none"/>`;
-  if(it.arrow&&it.pts.length>1){
-    const p=it.pts, n=p.length; let best=-1,bl=0;
-    for(let i=0;i<n-1;i++){const l=Math.hypot(p[i+1][0]-p[i][0],p[i+1][1]-p[i][1]);if(l>bl){bl=l;best=i}}
-    const A=p[n-2],B=p[n-1],ae=Math.atan2(B[1]-A[1],B[0]-A[0])*180/Math.PI;
-    if(Math.hypot(B[0]-A[0],B[1]-A[1])>=14)s+=arrowAt(B[0],B[1],ae,c,w);
-    if(bl>130&&!(best===n-2&&bl<260)){const a=p[best],b=p[best+1];s+=arrowAt((a[0]+b[0])/2+6*Math.sign(b[0]-a[0]),(a[1]+b[1])/2+6*Math.sign(b[1]-a[1]),Math.atan2(b[1]-a[1],b[0]-a[0])*180/Math.PI,c,w)}
-  }
+  if(it.arrow&&it.pts.length>1)for(const piece of(ARROWS.get(it.id)||[it.pts]))s+=smallArrows(piece,c,w);
   return s+'</g>';
 }
 function drawSym(it,pal,hit){
@@ -661,7 +689,8 @@ function subPath(p,d0,d1){
 const pkey=p=>Math.round(p[0]*2)/2+','+Math.round(p[1]*2)/2;
 function flowNet(mst){
   const lines=S.items.filter(i=>i.type==='line'),syms=S.items.filter(i=>i.type==='sym'),adj=new Map(),dead=new Set();
-  const link=(u,v,e)=>{e.u=u;e.v=v;for(const[a,b]of[[u,v],[v,u]]){if(!adj.has(a))adj.set(a,[]);adj.get(a).push({to:b,e})}};
+  const edges=[];
+  const link=(u,v,e)=>{e.u=u;e.v=v;edges.push(e);for(const[a,b]of[[u,v],[v,u]]){if(!adj.has(a))adj.set(a,[]);adj.get(a).push({to:b,e})}};
   const linkDir=(u,v,e)=>{e.u=u;e.v=v;if(!adj.has(u))adj.set(u,[]);adj.get(u).push({to:v,e})}; // solo de u a v (retención)
   const isShut=it=>{const k=it.kind,ms=MSTATE[it.id];if(k==='ciego')return ms==='closed';if(k==='psv')return ms!=='open';return CLOSABLE.includes(k)&&(ms?ms==='closed':!!it.closed)};
   for(const L of lines){
@@ -694,7 +723,7 @@ function flowNet(mst){
     for(const pt of ps)link('E:'+it.id,pkey(pt.p),{kind:'hub',it,len:0});
   }
   for(const h of S.items)if(h.type==='hose'&&MSTATE[h.id]!=='off')link(pkey(h.a),pkey(h.b),{kind:'hose',h,len:0});
-  return{adj,lines,dead};
+  return{adj,lines,dead,edges};
 }
 function chkDir(it){const f=it.flip?-1:1,r=(((it.rot||0)%360)+360)%360;return r===90?[0,f]:r===180?[-f,0]:r===270?[0,-f]:[f,0]}
 function tangentAt(p,q){for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1],l=segLen(a,b);if(l&&Math.abs(segLen(a,q)+segLen(q,b)-l)<.6)return[(b[0]-a[0])/l,(b[1]-a[1])/l]}return[1,0]}
@@ -940,8 +969,9 @@ function renderItems(pal,hit,man){
   const anim=hit&&mode==='anim', mst=man?manState(man.m,man.phase,man.upto):(anim?animState():null); MSTATE=mst?mst.st:{}; SHOWST=!!man;
   const lines=S.items.filter(i=>i.type==='line');
   VSEGS=[];for(const l of lines)for(let i=0;i<l.pts.length-1;i++){const a=l.pts[i],b=l.pts[i+1];if(a[0]===b[0]&&a[1]!==b[1])VSEGS.push({id:l.id,x:a[0],y0:Math.min(a[1],b[1]),y1:Math.max(a[1],b[1])})}
+  const RUN0=flowRun(mst);buildArrows(RUN0,designRun());
   let s=lines.map(l=>drawLine(l,pal,hit)).join('');
-  const RUN=anim||(hit&&flowOn)?flowRun(mst):null;
+  const RUN=anim||(hit&&flowOn)?RUN0:null;
   if(anim)s=`<g opacity=".28">${s}</g>`+drawFlowFancy(RUN,pal,['line']);
   else if(RUN)s+=drawFlow(RUN,pal,['line']);
   s+=junctions(lines,pal);
