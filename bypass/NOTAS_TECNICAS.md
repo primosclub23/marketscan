@@ -2,7 +2,7 @@
 
 Editor web de esquemas de proceso para operadores.
 
-- `index.html`: **un único archivo con la web y el editor**. La web de presentación (`#landing`) se muestra encima del editor según el ancla: sin ancla, `#inicio`, `#precios`… → web; `#app` → editor; `#pro` → editor con la ventana Pro (`route()`). El CSS de la web va encerrado en `#landing`. Al tocar el logo del editor se vuelve a la web. El visor exportado nunca muestra la web.
+- `index.html`: **un único archivo con la web y el editor**. La web de presentación (`#landing`) se muestra encima del editor según el ancla: sin ancla, `#inicio`, `#precios`… → web; `#app` → editor; `#pro` → editor con la ventana Pro (`route()`). Los enlaces internos y los botones de la web se resuelven con JavaScript (`go()`, `showApp()`, `showLanding()`), sin depender de cambiar el `#ancla`, porque algunos visores (como el de Claude) no lo permiten. El CSS de la web va encerrado en `#landing`. Al tocar el logo del editor se vuelve a la web. El visor exportado nunca muestra la web.
 - `app.html`: solo redirige a `index.html#app` (por compatibilidad).
 
 El editor: HTML, CSS y JS sin dependencias ni paso de compilación. Las fuentes se cargan de Google Fonts.

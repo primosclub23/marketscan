@@ -2945,13 +2945,27 @@ function sample(){
 })();
 /* ════════ Web ⇄ editor ════════
    Sin ancla (o #inicio, #precios…): la web. #app: el editor. #pro: el editor con la ventana Pro. */
-function route(){
-  const h=location.hash.slice(1),L=$('#landing');
-  if(VIEWER){L.hidden=true;return}
-  if(h==='app'||h==='pro'){L.hidden=true;document.title='Bypass — editor';requestAnimationFrame(()=>{applyView();fit()});if(h==='pro')openPro(null);return}
-  L.hidden=false;document.title='Bypass — planos de proceso y maniobras para operadores';
-  const t=h&&document.getElementById(h);if(t)setTimeout(()=>t.scrollIntoView(),30);else L.scrollTop=0;
+/* Navegación sin depender de la dirección de la página: en algunos visores (p. ej. el de Claude) cambiar el #ancla no funciona,
+   así que los enlaces internos se resuelven aquí con JavaScript. */
+function setHash(h){try{history.replaceState(null,'',h?'#'+h:location.pathname+location.search)}catch(e){}}
+function showApp(pro){
+  const L=$('#landing');L.hidden=true;document.title='Bypass — editor';
+  requestAnimationFrame(()=>{applyView();fit()});if(pro)setTimeout(()=>openPro(null),50);setHash(pro?'pro':'app');
 }
+function showLanding(id){
+  const L=$('#landing');L.hidden=false;document.title='Bypass — planos de proceso y maniobras para operadores';
+  const t=id&&document.getElementById(id);
+  if(t&&L.contains(t))setTimeout(()=>{L.scrollTo({top:t.offsetTop-70,behavior:'smooth'})},30);else if(!id||id==='inicio')L.scrollTo({top:0,behavior:'smooth'});
+  setHash(id&&id!=='inicio'?id:'');
+}
+function go(h){if(VIEWER)return;if(h==='app'||h==='pro')showApp(h==='pro');else showLanding(h)}
+function route(){if(VIEWER){$('#landing').hidden=true;return}const h=location.hash.slice(1);if(h==='app'||h==='pro')showApp(h==='pro');else{$('#landing').hidden=false;const t=h&&document.getElementById(h);if(t)setTimeout(()=>$('#landing').scrollTop=t.offsetTop-70,30)}}
+document.addEventListener('click',e=>{
+  if(e.defaultPrevented)return;
+  const a=e.target.closest&&e.target.closest('a[href^="#"]');if(!a)return;
+  const h=a.getAttribute('href').slice(1);
+  if(h==='app'||h==='pro'||h==='inicio'||h===''&&a.closest('#landing')||(h&&document.getElementById(h)&&$('#landing').contains(document.getElementById(h)))){e.preventDefault();if($('#mPro')&&!$('#mPro').hidden&&h!=='pro')$('#mPro').hidden=true;go(h)}
+});
 addEventListener('hashchange',route);route();
 /* ════════ Web: solicitud de demo para empresas ════════
    LEADS_URL: formulario que recibe la solicitud (Formspree, Google Apps Script…). Vacía = solo se guarda en este navegador. */
@@ -3016,7 +3030,7 @@ const LEADS_URL='';
     (function f(t){if(dragging)return;const dt=t-t0;let i=0;while(i<key.length-2&&dt>key[i+1][0])i++;const[a,va]=key[i],[b,vb]=key[i+1],k=Math.min(1,(dt-a)/(b-a)),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;cw.style.setProperty('--x',(va+(vb-va)*e)+'%');if(dt<key[key.length-1][0])requestAnimationFrame(f)})(t0)}
 })();
 
-$('.brand').style.cursor='pointer';$('.brand').title='Ir a la web de Bypass';$('.brand').onclick=()=>{location.hash='inicio'};
+$('.brand').style.cursor='pointer';$('.brand').title='Ir a la web de Bypass';$('.brand').onclick=()=>showLanding('inicio');
 </script>
 </body>
 </html>
