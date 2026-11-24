@@ -53,7 +53,7 @@ El operador lo descubre y lo usa gratis. Lo enseña en el relevo. Cuando lo usa 
 | # | Fuente | Para quién | Precio orientativo |
 |---|---|---|---|
 | 1 | **Licencia de planta** (B2B) | Refinerías y plantas químicas | 3.000–15.000 €/año por planta |
-| 2 | **Pro individual** | El operador o técnico que lo quiere para él | 6 €/mes o 49 €/año |
+| 2 | **Pro individual** | El operador o técnico que lo quiere para él | **19 € pago único** (precio de lanzamiento, actualizaciones incluidas) |
 | 3 | **Educación** | FP de Química Industrial, centros de formación de empresas | 300–1.500 €/año por centro |
 | 4 | **Servicio de simplificación** | Plantas que quieren pasar sus P&ID a esquemas de operador | 150–400 € por plano (más adelante, con ayuda de IA) |
 | 5 | **Plantillas** | Unidades tipo genéricas: crudo, FCC, HDS, reformado, aminas… | 10–30 € la plantilla, o incluidas en Pro |
@@ -64,7 +64,7 @@ El operador lo descubre y lo usa gratis. Lo enseña en el relevo. Cuando lo usa 
 - Editor completo, guardado en tu propio dispositivo.
 - Exporta a PNG y a PDF con la marca «Hecho con Bypass» en el cajetín. Cada plano impreso y pegado en una sala de control es publicidad gratis.
 
-**Pro (6 €/mes)**
+**Pro (19 €, pago único)**
 - Exporta sin marca de agua, en A3 y A4 con cajetín propio.
 - Biblioteca personal de símbolos y fluidos.
 - Planos ilimitados y sincronizados entre el PC y la tablet.

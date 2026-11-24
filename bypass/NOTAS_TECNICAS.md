@@ -2,10 +2,12 @@
 
 Editor web de esquemas de proceso para operadores.
 
-- `index.html`: web de presentación (qué es, cómo funciona, funciones, próximamente, precios y preguntas), con los botones «Pruébalo gratis» (→ `app.html`) y «Bypass Pro» (→ `app.html?plan=pro`).
-- `app.html`: el editor. Es un único archivo: HTML, CSS y JS sin dependencias ni paso de compilación. Las fuentes se cargan de Google Fonts.
+- `index.html`: **un único archivo con la web y el editor**. La web de presentación (`#landing`) se muestra encima del editor según el ancla: sin ancla, `#inicio`, `#precios`… → web; `#app` → editor; `#pro` → editor con la ventana Pro (`route()`). El CSS de la web va encerrado en `#landing`. Al tocar el logo del editor se vuelve a la web. El visor exportado nunca muestra la web.
+- `app.html`: solo redirige a `index.html#app` (por compatibilidad).
 
-## Estructura del código (`app.html`)
+El editor: HTML, CSS y JS sin dependencias ni paso de compilación. Las fuentes se cargan de Google Fonts.
+
+## Estructura del código (`index.html`)
 
 - **`SYM`**: catálogo de símbolos. Cada uno tiene:
   - `n`: nombre;
