@@ -90,12 +90,12 @@ El editor: HTML, CSS y JS sin dependencias ni paso de compilación. Las fuentes 
 
 ## Para empresas (web)
 
-- Sección `#empresas`: las tres modalidades, los servicios aparte, el piloto, por qué le conviene a la empresa y el formulario «Solicitar demo» (`#demoForm`). Guarda la solicitud en `localStorage['bypass.leads']` y, si se rellena `LEADS_URL`, también la envía por POST a ese formulario.
+- Sección `#empresas`: las tres modalidades **sin precios**, cada una con «Pedir presupuesto» (`data-mod` elige la modalidad en el formulario), los servicios aparte, el piloto, por qué le conviene a la empresa y el formulario «Pide presupuesto» (`#demoForm`). Guarda la solicitud en `localStorage['bypass.leads']` y, si se rellena `LEADS_URL`, también la envía por POST a ese formulario.
 
 ## Animaciones de la web
 
 - Tuberías de fondo en la portada (`#heroBg`) que se dibujan solas (`pathLength=1` + `stroke-dashoffset`) y se mueven con parallax al hacer scroll. El scroll es el de `#landing`, no el de la ventana.
-- Entrada escalonada del texto, plano de ejemplo flotando que se inclina en 3D con el ratón, cinta en movimiento (`.mq`), cifras que cuentan (`data-count`) y barra de progreso (`#lProg`).
+- Entrada escalonada del texto, plano de ejemplo flotando que se inclina en 3D con el ratón, cifras que cuentan (`data-count`) y barra de progreso (`#lProg`).
 - Apariciones al hacer scroll: `IntersectionObserver` con `root:#landing` añade `.in` a los elementos `.rv`, con retardo escalonado por grupo. Las tarjetas tienen un brillo que sigue al ratón (`--mx`/`--my`).
 - Comparador «Antes/Después» (`#cmpw`): dos SVG superpuestos, el de Bypass recortado con `clip-path: inset(0 0 0 var(--x))`. Se arrastra con puntero y hace un barrido automático al aparecer.
 - Con `prefers-reduced-motion` se desactiva todo el movimiento.
@@ -106,7 +106,7 @@ El editor: HTML, CSS y JS sin dependencias ni paso de compilación. Las fuentes 
 - **Gratis**: todo el editor, el modo maniobra con su hoja, ver flujo, PNG y PDF A4 en color (con «versión gratuita» en el cajetín y en la hoja) y hasta `FREE_PLANS`=3 planos.
 - **Pro** (`needPro(nombre)` abre la ventana Pro si no lo es): modo animación, compartir por correo, PDF A3 y B/N, exportar e importar unidades, y planos ilimitados (`needRoom()`).
 - `?plan=pro` en la URL abre la ventana Pro al entrar (viene del botón de la web).
-- **Próximamente** (puerta falsa o lista de espera): la sección 07 del editor y la sección «En camino» de la web muestran funciones futuras (`SOON`). Al tocarlas, piden el correo con consentimiento y guardan `{feature, name, email, date}` en `localStorage['bypass.waitlist']`. Si se rellena `WAITLIST_URL` (en los dos archivos), también se envía por POST a ese formulario (Formspree, Google Apps Script…) para contar las peticiones de cada función.
+- **Próximamente** (puerta falsa o lista de espera): la sección 07 del editor muestra funciones futuras (`SOON`). Al tocarlas, piden el correo con consentimiento y guardan `{feature, name, email, date}` en `localStorage['bypass.waitlist']`. Si se rellena `WAITLIST_URL` (en los dos archivos), también se envía por POST a ese formulario (Formspree, Google Apps Script…) para contar las peticiones de cada función.
 
 ## Móvil y tablet
 

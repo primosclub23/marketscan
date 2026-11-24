@@ -426,13 +426,13 @@ body.pro .pro-tag,body.viewer .pro-tag,body.viewer .planchip{display:none!import
 #landing .ecard .pr small{color:var(--tx3);font-size:14px}
 #landing .ecard .pr b{font-family:var(--cond);font-weight:800;font-size:40px;line-height:1}
 #landing .ecard .pr span{color:var(--tx2);font-size:15px}
-#landing .ecard ul{list-style:none;display:flex;flex-direction:column;gap:8px;margin:16px 0 0}
+#landing .ecard ul{list-style:none;display:flex;flex-direction:column;gap:8px;margin:16px 0 22px;flex:1}
+#landing .ecard .btn{align-self:flex-start}
 #landing .ecard li{display:flex;gap:9px;font-size:15px}
 #landing .ecard li::before{content:'✓';color:var(--hz);font-weight:700;flex:none}
 #landing .extras{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
 #landing .extra{border:1px dashed var(--line2);border-radius:8px;padding:16px 18px}
 #landing .extra b{display:block;font-family:var(--cond);font-weight:700;font-size:18px;letter-spacing:.04em;text-transform:uppercase}
-#landing .extra em{font-style:normal;color:var(--hz);font-family:var(--mono);font-size:13px;font-weight:700}
 #landing .extra p{color:var(--tx2);font-size:14px;margin-top:4px}
 #landing .pilot{margin-top:18px;display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;background:repeating-linear-gradient(-45deg,rgba(255,196,0,.07) 0 12px,transparent 12px 24px),var(--ui2);border:1px solid var(--hz);border-radius:10px;padding:22px 26px}
 #landing .pilot .big{font-family:var(--cond);font-weight:800;font-size:58px;line-height:.9;color:var(--hz)}
@@ -665,7 +665,7 @@ section{padding:84px 0;border-top:1px solid var(--line)}
       <span class="mark"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linejoin="round"><path d="M1 15h4M19 15h4M5 15V6h14v9"/><path d="M8.5 12l7 6v-6l-7 6z" fill="#111" stroke-width="1.4"/></svg></span>
       <span class="word">BYPASS</span>
     </a>
-    <div class="links"><a href="#como">Cómo funciona</a><a href="#funciones">Funciones</a><a href="#pronto">Próximamente</a><a href="#precios">Precios</a><a href="#empresas">Empresas</a><a href="#preguntas">Preguntas</a></div>
+    <div class="links"><a href="#como">Cómo funciona</a><a href="#funciones">Funciones</a><a href="#precios">Precios</a><a href="#empresas">Empresas</a><a href="#preguntas">Preguntas</a></div>
     <a class="btn pri sm" href="#app">Abrir Bypass</a>
   </div>
   <i class="lprog" id="lProg"></i>
@@ -746,10 +746,6 @@ section{padding:84px 0;border-top:1px solid var(--line)}
   </div>
 </div>
 
-<div class="mq" aria-hidden="true">
-  <div class="mq-t"><b>Alinea</b><i>◆</i><b class="y">Aísla</b><i>◆</i><b>Consigna</b><i>◆</i><b>Drena</b><i>◆</i><b class="y">Purga</b><i>◆</i><b>Normaliza</b><i>◆</i><b>Alinea</b><i>◆</i><b class="y">Aísla</b><i>◆</i><b>Consigna</b><i>◆</i><b>Drena</b><i>◆</i><b class="y">Purga</b><i>◆</i><b>Normaliza</b><i>◆</i></div>
-  <div class="mq-t r"><span><u style="background:#22B35E"></u>AGUA</span><span><u style="background:#E5484D"></u>VAPOR</span><span><u style="background:#3B82F6"></u>NITRÓGENO</span><span><u style="background:#38BDF8"></u>AIRE</span><span><u style="background:#FFC400"></u>ANTORCHA</span><span><u style="background:#FFC400"></u>FUEL GAS</span><span><u style="background:#F97316"></u>HIDRÓGENO</span><span><u style="background:#A16207"></u>CRUDO</span><span><u style="background:#E6EAF0"></u>PROCESO</span><span><u style="background:#22B35E"></u>AGUA</span><span><u style="background:#E5484D"></u>VAPOR</span><span><u style="background:#3B82F6"></u>NITRÓGENO</span><span><u style="background:#38BDF8"></u>AIRE</span><span><u style="background:#FFC400"></u>ANTORCHA</span><span><u style="background:#FFC400"></u>FUEL GAS</span><span><u style="background:#F97316"></u>HIDRÓGENO</span><span><u style="background:#A16207"></u>CRUDO</span><span><u style="background:#E6EAF0"></u>PROCESO</span></div>
-</div>
 <div class="wrap stats">
   <div class="stat"><b data-count="10" data-suf=" min">0</b><span>para tu primer plano</span></div>
   <div class="stat"><b data-count="40" data-suf="+">0</b><span>símbolos de planta</span></div>
@@ -869,17 +865,9 @@ section{padding:84px 0;border-top:1px solid var(--line)}
   </div>
 </section>
 
-<section id="pronto">
-  <div class="wrap">
-    <div class="sh"><span class="n">03</span><h2>En camino: tú decides</h2></div>
-    <p class="sub">Estas funciones se están desarrollando. Apúntate a las que más necesites: la que más gente pida es la que sale primero, y te avisamos en cuanto esté.</p>
-    <div class="soongrid" id="lSoon"></div>
-  </div>
-</section>
-
 <section id="precios">
   <div class="wrap">
-    <div class="sh"><span class="n">04</span><h2>Precios</h2></div>
+    <div class="sh"><span class="n">03</span><h2>Precios</h2></div>
     <p class="sub">Empieza gratis, sin registro. Si te sirve, Pro se paga una sola vez: sin suscripciones.</p>
     <div class="plans">
       <div class="plan">
@@ -936,29 +924,29 @@ section{padding:84px 0;border-top:1px solid var(--line)}
 
 <section id="empresas">
   <div class="wrap">
-    <div class="sh"><span class="n">05</span><h2>Para empresas</h2></div>
-    <p class="sub">Para toda una unidad, una refinería o un grupo con varias plantas. Usuarios ilimitados, todo dentro de vuestra red y los planos de maniobra siempre en la última revisión.</p>
+    <div class="sh"><span class="n">04</span><h2>Para empresas</h2></div>
+    <p class="sub">Para toda una unidad, una refinería o un grupo con varias plantas. Usuarios ilimitados, todo dentro de vuestra red y los planos de maniobra siempre en la última revisión. Cada planta es distinta: cuéntanos la vuestra y te preparamos un presupuesto.</p>
     <div class="ent">
       <div class="ecard">
         <div class="who">UN DEPARTAMENTO O UNA UNIDAD</div><h3>Unidad</h3>
-        <div class="pr"><small>desde</small><b>1.500 €</b><span>/año</span></div>
         <ul><li>Hasta 25 usuarios con Pro</li><li>Biblioteca compartida de la unidad</li><li>Colores y símbolos de vuestra planta</li><li>Soporte por correo</li></ul>
+        <a class="btn sm" href="#demo" data-mod="Unidad">Pedir presupuesto</a>
       </div>
       <div class="ecard star">
         <div class="who">REFINERÍA O PLANTA QUÍMICA</div><h3>Planta</h3>
-        <div class="pr"><small>desde</small><b>6.000 €</b><span>/año</span></div>
         <ul><li>Usuarios ilimitados en toda la planta</li><li>Servidor dentro de vuestra red: nada sale a internet</li><li>Planos y maniobras centralizados, con revisiones y aprobación</li><li>Acceso con el usuario de empresa</li><li>Soporte prioritario</li></ul>
+        <a class="btn pri sm" href="#demo" data-mod="Planta">Pedir presupuesto</a>
       </div>
       <div class="ecard">
         <div class="who">GRUPO CON VARIAS PLANTAS</div><h3>Corporativo</h3>
-        <div class="pr"><b>A medida</b></div>
         <ul><li>Todas vuestras plantas</li><li>Biblioteca y estándares comunes</li><li>Gestión centralizada</li><li>Interlocutor dedicado</li></ul>
+        <a class="btn sm" href="#demo" data-mod="Corporativo">Pedir presupuesto</a>
       </div>
     </div>
     <div class="extras">
-      <div class="extra"><b>Puesta en marcha</b><em>desde 3.000 €</em><p>Instalación en vuestro servidor, configuración con vuestros estándares y los planos de la primera unidad.</p></div>
-      <div class="extra"><b>Formación</b><em>desde 600 € / jornada</em><p>Para operadores, jefes de turno y formadores, en planta o a distancia.</p></div>
-      <div class="extra"><b>Digitalización</b><em>desde 150 € / plano</em><p>Pasamos vuestros P&amp;ID a planos de operador, listos para usar.</p></div>
+      <div class="extra"><b>Puesta en marcha</b><p>Instalación en vuestro servidor, configuración con vuestros estándares y los planos de la primera unidad.</p></div>
+      <div class="extra"><b>Formación</b><p>Para operadores, jefes de turno y formadores, en planta o a distancia.</p></div>
+      <div class="extra"><b>Digitalización</b><p>Pasamos vuestros P&amp;ID a planos de operador, listos para usar.</p></div>
     </div>
     <div class="pilot">
       <div class="big">3<small>MESES</small></div>
@@ -972,9 +960,9 @@ section{padding:84px 0;border-top:1px solid var(--line)}
     </div>
     <div class="demo" id="demo">
       <div class="side">
-        <h3>Solicita una demo</h3>
-        <p>Te enseñamos Bypass con una unidad de ejemplo parecida a la vuestra y vemos juntos si encaja.</p>
-        <ul><li>30 minutos, en remoto o en vuestra planta</li><li>Sin compromiso</li><li>Te respondemos en 48 horas laborables</li></ul>
+        <h3>Pide presupuesto</h3>
+        <p>Cuéntanos cómo es vuestra planta y qué necesitáis. Te enviamos un presupuesto a medida y, si queréis, una demo con una unidad parecida a la vuestra.</p>
+        <ul><li>Presupuesto sin compromiso</li><li>Demo de 30 minutos, en remoto o en planta</li><li>Te respondemos en 48 horas laborables</li></ul>
       </div>
       <form id="demoForm" novalidate>
         <label>Nombre<input name="nombre" autocomplete="name" required></label>
@@ -985,8 +973,8 @@ section{padding:84px 0;border-top:1px solid var(--line)}
         <label>Qué os interesa<select name="modalidad"><option>Planta</option><option>Unidad</option><option>Corporativo</option><option>Proyecto piloto</option><option>Aún no lo sé</option></select></label>
         <label class="full">Cuéntanos un poco (opcional)<textarea name="mensaje" placeholder="Tipo de planta, nº de unidades u operadores, qué os gustaría mejorar…"></textarea></label>
         <label class="full ck"><input type="checkbox" name="ok"> Acepto que usen estos datos solo para contactarme sobre Bypass.</label>
-        <div class="full"><button class="btn pri" type="submit">Solicitar demo</button></div>
-        <div class="ok"><b>¡Gracias!</b> Hemos recibido tu solicitud. Te escribiremos en un máximo de 48 horas laborables.</div>
+        <div class="full"><button class="btn pri" type="submit">Pedir presupuesto</button></div>
+        <div class="ok"><b>¡Gracias!</b> Hemos recibido tu petición. Te escribiremos con el presupuesto en un máximo de 48 horas laborables.</div>
       </form>
     </div>
   </div>
@@ -994,7 +982,7 @@ section{padding:84px 0;border-top:1px solid var(--line)}
 
 <section id="preguntas">
   <div class="wrap">
-    <div class="sh"><span class="n">06</span><h2>Preguntas</h2></div>
+    <div class="sh"><span class="n">05</span><h2>Preguntas</h2></div>
     <div class="faq" style="margin-top:28px">
       <details><summary>¿Tengo que instalar algo o registrarme?</summary><p>No. Pulsas «Pruébalo gratis» y ya estás dibujando en el navegador del ordenador, la tablet o el móvil.</p></details>
       <details><summary>¿Dónde se guardan mis planos?</summary><p>En tu propio navegador. No se suben a ninguna nube. Para tener copia o pasarlos a otro equipo, expórtalos a un archivo.</p></details>
@@ -2482,7 +2470,7 @@ function soonDone(){try{return JSON.parse(localStorage.getItem('bypass.waitlist'
 function renderSoon(){const done=new Set(soonDone().map(x=>x.feature));const ls=$('#lSoon');if(ls)ls.innerHTML=SOON.map(f=>`<div class="sc${done.has(f.id)?' ok':''}"><h4>${esc(f.n)} <span class="tag soon-t">PRONTO</span></h4><p>${esc(f.d)}</p><button class="btn sm" data-soon="${f.id}">${done.has(f.id)?'✓ Apuntado':'Me interesa'}</button></div>`).join('');$('#soonList').innerHTML=SOON.map(f=>`<button class="soon${done.has(f.id)?' ok':''}" data-soon="${f.id}"><b>${esc(f.n)}</b><i>${done.has(f.id)?'APUNTADO ✓':'PRONTO'}</i></button>`).join('')}
 let soonCur=null;
 function openSoon(e){const b=e.target.closest('[data-soon]');if(!b)return;const f=SOON.find(x=>x.id===b.dataset.soon);soonCur=f;$('#soonT').textContent=f.n;$('#soonD').textContent=f.d;const prev=soonDone().find(x=>x.email);if(prev&&!$('#soonMail').value)$('#soonMail').value=prev.email;$('#mSoon').hidden=false;setTimeout(()=>$('#soonMail').focus(),50)}
-$('#soonList').addEventListener('click',openSoon);$('#lSoon').addEventListener('click',openSoon);
+$('#soonList').addEventListener('click',openSoon);
 $('#soonGo').onclick=()=>{
   const email=$('#soonMail').value.trim();
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){toast('Escribe un correo válido');return}
@@ -2970,6 +2958,7 @@ addEventListener('hashchange',route);route();
 const LEADS_URL='';
 (function(){
   const f=$('#demoForm');if(!f)return;
+  document.querySelectorAll('#landing [data-mod]').forEach(a=>a.addEventListener('click',()=>{f.modalidad.value=a.dataset.mod;setTimeout(()=>f.nombre.focus({preventScroll:true}),700)}));
   f.addEventListener('submit',e=>{
     e.preventDefault();
     const d=Object.fromEntries(new FormData(f).entries());
@@ -2979,7 +2968,7 @@ const LEADS_URL='';
     const rec={...d,date:new Date().toISOString(),origen:'web-empresas'};delete rec.ok;
     try{const all=JSON.parse(localStorage.getItem('bypass.leads')||'[]');all.push(rec);localStorage.setItem('bypass.leads',JSON.stringify(all))}catch(_){}
     if(LEADS_URL)fetch(LEADS_URL,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(rec)}).catch(()=>{});
-    $('#demo').classList.add('sent');toast('Solicitud enviada');
+    $('#demo').classList.add('sent');toast('Petición enviada');
   });
 })();
 /* ════════ Web: parallax, apariciones, cifras y comparador ════════ */
@@ -3012,7 +3001,6 @@ const LEADS_URL='';
     document.querySelectorAll('#landing [data-count]').forEach(el=>io.observe(el));
   }
   watch();
-  const lsoon=$('#lSoon');new MutationObserver(watch).observe(lsoon,{childList:true});
   // cifras que cuentan
   function count(el){const to=+el.dataset.count,suf=el.dataset.suf||'',t0=performance.now(),d=reduce?0:1300;
     (function f(t){const k=d?Math.min(1,(t-t0)/d):1,v=Math.round(to*(1-Math.pow(1-k,3)));el.textContent=v+suf;if(k<1)requestAnimationFrame(f)})(t0)}

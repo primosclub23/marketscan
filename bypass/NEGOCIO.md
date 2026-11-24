@@ -79,7 +79,7 @@ El operador lo descubre y lo usa gratis. Lo enseña en el relevo. Cuando lo usa 
 - Inicio de sesión corporativo (SSO), soporte y formación.
 
 
-### Precios para empresas (publicados en la web, sección «Para empresas»)
+### Precios para empresas (internos: en la web no se publican, solo «Pedir presupuesto»)
 
 | Modalidad | Para quién | Precio |
 |---|---|---|
