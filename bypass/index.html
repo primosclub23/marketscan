@@ -654,55 +654,100 @@ function subPath(p,d0,d1){
   }
   return out;
 }
-function flowIntervals(lines,mst){
-  const L=new Map();
-  for(const ln of lines)L.set(ln.id,{ln,len:polyLen(ln.pts),kills:[],merges:[],parents:[],iv:[],endLive:false});
-  for(const it of S.items){
-    if(it.type!=='sym')continue;
-    const k=it.kind,ms=MSTATE[it.id];
-    if(k==='psv'){ // PSV: sin flujo a antorcha salvo que esté disparada
-      if(ms==='open')continue;const out=portsOf(it)[1];
-      if(out)for(const o of L.values()){const d=distAlong(o.ln.pts,out.p);if(d>=0)o.kills.push(d)}
-      continue;
+/* ════════ Red de flujo (entradas elegidas) ════════
+   La red se recorre desde las ENTRADAS sin importar en qué sentido se dibujó cada línea.
+   Nudos: extremos de tramo, bifurcaciones y bocas. Las válvulas cerradas, los ciegos y las
+   PSV sin disparar cortan; los equipos y las válvulas abiertas conectan todas sus bocas. */
+const pkey=p=>Math.round(p[0]*2)/2+','+Math.round(p[1]*2)/2;
+function flowNet(mst){
+  const lines=S.items.filter(i=>i.type==='line'),syms=S.items.filter(i=>i.type==='sym'),adj=new Map(),dead=new Set();
+  const link=(u,v,e)=>{e.u=u;e.v=v;for(const[a,b]of[[u,v],[v,u]]){if(!adj.has(a))adj.set(a,[]);adj.get(a).push({to:b,e})}};
+  const isShut=it=>{const k=it.kind,ms=MSTATE[it.id];if(k==='ciego')return ms==='closed';if(k==='psv')return ms!=='open';return CLOSABLE.includes(k)&&(ms?ms==='closed':!!it.closed)};
+  for(const L of lines){
+    const len=polyLen(L.pts),br=[{d:0},{d:len}];
+    for(const M of lines)if(M!==L)for(const q of[M.pts[0],M.pts[M.pts.length-1]]){const d=distAlong(L.pts,q);if(d>.6&&d<len-.6)br.push({d})}
+    for(const it of syms){
+      if(isInline(it.kind)||it.kind==='ciego'){const d=distAlong(L.pts,[it.x,it.y]);if(d<0)continue;if(PURGA.includes(it.kind))br.push({d});else if(isShut(it))br.push({d,kill:it.id})}
+      else for(const pt of portsOf(it)){const d=distAlong(L.pts,pt.p);if(d>.6&&d<len-.6)br.push({d})}
     }
-    const shut=k==='ciego'?ms==='closed':(CLOSABLE.includes(k)&&!PURGA.includes(k)&&(ms?ms==='closed':!!it.closed));
-    if(!shut)continue;
-    for(const o of L.values()){const d=distAlong(o.ln.pts,[it.x,it.y]);if(d>=0)o.kills.push(d)}
-  }
-  if(mst)for(const b of mst.blinds){const o=L.get(b.target);if(o){const d=distAlong(o.ln.pts,[b.x,b.y]);if(d>=0)o.kills.push(d)}}
-  for(const o of L.values())for(const m of L.values()){
-    if(m===o)continue;
-    const e=m.ln.pts[m.ln.pts.length-1],d=distAlong(o.ln.pts,e);
-    if(d>=0)o.merges.push({d,m});
-    const st=o.ln.pts[0],dp=distAlong(m.ln.pts,st);
-    if(dp>=0&&!(Math.abs(dp-m.len)<.6))o.parents.push({m,d:dp});
-  }
-  const liveAt=(o,d)=>o.iv.some(([a,b])=>d>=a-.6&&d<=b+.6);
-  for(let pass=0;pass<8;pass++){
-    for(const o of L.values()){
-      let alive=o.parents.length?o.parents.some(pp=>liveAt(pp.m,pp.d)):!o.merges.some(x=>x.d<.6);
-      const ev=o.kills.map(d=>({d,k:1})).concat(o.merges.filter(x=>x.m.endLive).map(x=>({d:x.d,k:0}))).sort((a,b)=>a.d-b.d||b.k-a.k);
-      const iv=[];let cur=0;
-      for(const e of ev){if(e.k&&alive){iv.push([cur,e.d]);alive=false}else if(!e.k&&!alive){cur=e.d;alive=true}}
-      if(alive)iv.push([cur,o.len]);
-      o.iv=iv;o.endLive=alive;
+    if(mst)for(const b of mst.blinds)if(b.target===L.id){const d=distAlong(L.pts,[b.x,b.y]);if(d>=0)br.push({d,kill:'b'+b.id})}
+    for(const h of S.items)if(h.type==='hose')for(const q of[h.a,h.b]){const d=distAlong(L.pts,q);if(d>.6&&d<len-.6)br.push({d})}
+    br.sort((a,b)=>a.d-b.d);
+    const nd=[];for(const b of br){const l=nd[nd.length-1];if(l&&Math.abs(l.d-b.d)<.6){if(b.kill)l.kill=b.kill}else nd.push({d:b.d,kill:b.kill})}
+    for(let i=0;i<nd.length-1;i++){
+      const a=nd[i],b=nd[i+1];if(b.d-a.d<.5)continue;const pts=subPath(L.pts,a.d,b.d);if(pts.length<2)continue;
+      const ka=a.kill?`K:${a.kill}:${L.id}:${i}a`:pkey(pts[0]),kb=b.kill?`K:${b.kill}:${L.id}:${i}b`:pkey(pts[pts.length-1]);
+      link(ka,kb,{kind:'line',ln:L,pts,len:b.d-a.d});
     }
   }
-  return L;
+  for(const it of syms){
+    if(it.kind==='ciego'||it.kind==='instrumento')continue;
+    const ps=portsOf(it);
+    if(PURGA.includes(it.kind)){if(!isShut(it)&&ps[0])link(pkey([it.x,it.y]),pkey(ps[0].p),{kind:'purga',it,pts:[[it.x,it.y],ps[0].p],len:0});continue}
+    if(isShut(it)){for(const pt of ps)dead.add(pkey(pt.p));continue}
+    for(const pt of ps)link('E:'+it.id,pkey(pt.p),{kind:'hub',it,len:0});
+  }
+  for(const h of S.items)if(h.type==='hose'&&MSTATE[h.id]!=='off')link(pkey(h.a),pkey(h.b),{kind:'hose',h,len:0});
+  return{adj,lines,dead};
 }
-function drawFlow(lines,pal,mst){
+function portOwners(){const m=new Map();for(const it of S.items)if(it.type==='sym'&&!isInline(it.kind))for(const pt of portsOf(it))m.set(pkey(pt.p),it);return m}
+/* Entradas automáticas: límites de batería donde empieza una línea o una manguera, y líneas que empiezan sueltas */
+function autoSources(){
+  const out=[],own=portOwners(),lines=S.items.filter(i=>i.type==='line'),hoses=S.items.filter(i=>i.type==='hose'),seen=new Set();
+  const push=p=>{const k=pkey(p);if(!seen.has(k)){seen.add(k);out.push({type:'pt',p:[p[0],p[1]]})}};
+  const ends=new Set();for(const L of lines){ends.add(pkey(L.pts[0]));ends.add(pkey(L.pts[L.pts.length-1]))}for(const h of hoses){ends.add(pkey(h.a));ends.add(pkey(h.b))}
+  // límites de batería: la flecha apunta hacia donde va el fluido; lo conectado a la PUNTA es una entrada
+  for(const it of S.items){
+    if(it.type!=='sym'||it.kind!=='limite'||/^\s*(A|HACIA|SALIDA)\b/i.test(it.tag||''))continue;
+    const tip=portsOf(it)[1];if(tip&&ends.has(pkey(tip.p)))push(tip.p);
+  }
+  // líneas que empiezan sueltas (sin equipo, sin otra línea)
+  for(const L of lines){
+    const s0=L.pts[0];if(own.get(pkey(s0)))continue;
+    const touches=lines.some(M=>M!==L&&distAlong(M.pts,s0)>=0)||hoses.some(h=>pkey(h.a)===pkey(s0)||pkey(h.b)===pkey(s0));
+    if(!touches)push(s0);
+  }
+  return out;
+}
+const srcKey=s=>s.type==='sym'?'E:'+s.id:pkey(s.p);
+function flowSources(){return S.flowSrc||autoSources()}
+function flowRun(mst){
+  const net=flowNet(mst),srcs=flowSources(),start=srcs.map(srcKey).filter(k=>net.adj.has(k));
+  const seen=new Set(start),q=[...start],oriented=[],used=new Set(),outMap=new Map();
+  while(q.length){
+    const u=q.shift();
+    for(const{to,e}of net.adj.get(u)||[]){
+      if(used.has(e))continue;used.add(e);
+      oriented.push({e,from:u,to,fwd:e.u===u});
+      if(!outMap.has(u))outMap.set(u,[]);outMap.get(u).push(to);
+      if(!seen.has(to)){seen.add(to);q.push(to)}
+    }
+  }
+  let tot=0,live=0;for(const L of net.lines)tot+=polyLen(L.pts);for(const o of oriented)if(o.e.kind==='line')live+=o.e.len;
+  return{net,srcs,oriented,outMap,seen,tot,live};
+}
+function orientedD(o){
+  const e=o.e;
+  if(e.kind==='hose'){const h=e.h,q=hoseCtrl(h.a,h.b),A=o.fwd?h.a:h.b,B=o.fwd?h.b:h.a;return`M${A[0]},${A[1]} Q${q[0]},${q[1]} ${B[0]},${B[1]}`}
+  const p=o.fwd?e.pts:[...e.pts].reverse();
+  if(e.kind==='purga'){const pt=portsOf(e.it)[0];return pathD(p)+` L${pt.p[0]+pt.n[0]*12},${pt.p[1]+pt.n[1]*12}`}
+  return pathD(p);
+}
+function edgeColor(e,pal){return e.kind==='hose'?(HOSES[e.h.kind]||HOSES.agua).c:e.kind==='line'?col(e.ln.fluid,pal):null}
+/* Flujo simple (botón «Ver flujo») */
+function drawFlow(run,pal,kinds){
   let s='';
-  for(const o of flowIntervals(lines,mst).values()){
-    const w=o.ln.weight==='b'?4.5:2.6;
-    for(const[a,b]of o.iv){if(b-a<3)continue;const p=subPath(o.ln.pts,a,b);if(p.length<2)continue;
-      s+=`<path class="flow" d="${pathD(p)}" fill="none" stroke="${pal.paper}" stroke-width="${w+.4}" stroke-dasharray="6 12" stroke-linecap="butt" stroke-linejoin="round" pointer-events="none"/>`}
+  for(const o of run.oriented){
+    if(!kinds.includes(o.e.kind))continue;
+    const w=o.e.kind==='line'?(o.e.ln.weight==='b'?4.5:2.6)+.4:2.6;
+    s+=`<path class="flow" d="${orientedD(o)}" fill="none" stroke="${pal.paper}" stroke-width="${w}" stroke-dasharray="6 12" stroke-linecap="butt" stroke-linejoin="round" pointer-events="none"/>`;
   }
   return s;
 }
 /* ════════ Modo animación ════════
    Simulador: tocar una válvula la abre o la cierra solo aquí (SIM), sin tocar el plano.
    Estado de partida: las válvulas del plano o la maniobra (aislamiento). */
-let SIM={}, animBase='plano', animPaused=false, animSpeed='n', animStyle='part', lastFI=null;
+let SIM={}, animBase='plano', animPaused=false, animSpeed='n', animStyle='part', lastRun=null, animPick=false;
 function animState(){
   const m=animBase==='man'&&M(), base=m?manState(m,'a'):{st:{},locks:new Set(),blinds:[]}, st=Object.assign({},base.st);
   for(const it of S.items){
@@ -730,49 +775,65 @@ function fluidPath(d,c,w){
   }
   return `<g pointer-events="none">${s}</g>`;
 }
-function drawFlowFancy(FI,pal){
+function drawFlowFancy(run,pal,kinds){
   let s='';
-  for(const o of FI.values()){
-    const c=col(o.ln.fluid,pal),w=o.ln.weight==='b'?4.5:2.6;
-    for(const[a,b]of o.iv){if(b-a<3)continue;const p=subPath(o.ln.pts,a,b);if(p.length>1)s+=fluidPath(pathD(p),c,w)}
+  for(const o of run.oriented){
+    if(!kinds.includes(o.e.kind))continue;
+    const c=edgeColor(o.e,pal);if(!c)continue;
+    s+=fluidPath(orientedD(o),c,o.e.kind==='line'?(o.e.ln.weight==='b'?4.5:2.6):3.5);
   }
   return s;
 }
-function liveAtPoint(FI,q){for(const o of FI.values()){const d=distAlong(o.ln.pts,q);if(d>=0&&o.iv.some(([a,b])=>d>=a-.6&&d<=b+.6))return o}return null}
-function drawAnimExtras(FI,pal){
+function drawAnimExtras(run,pal){
   let s='';
-  for(const h of S.items)if(h.type==='hose'&&MSTATE[h.id]!=='off'){
-    const q=hoseCtrl(h.a,h.b);s+=fluidPath(`M${h.a[0]},${h.a[1]} Q${q[0]},${q[1]} ${h.b[0]},${h.b[1]}`,(HOSES[h.kind]||HOSES.agua).c,3.5);
-  }
-  // purgas abiertas sobre una línea con flujo: descargan
-  for(const it of S.items){
-    if(it.type!=='sym'||!PURGA.includes(it.kind)||MSTATE[it.id]!=='open')continue;
-    const o=liveAtPoint(FI,[it.x,it.y]);if(!o)continue;
-    const pt=portsOf(it)[0],e=[pt.p[0]+pt.n[0]*12,pt.p[1]+pt.n[1]*12],c=col(o.ln.fluid,pal),lc=lighten(c,.6);
-    s+=fluidPath(`M${it.x},${it.y} L${pt.p[0]},${pt.p[1]} L${e[0]},${e[1]}`,c,2);
+  // purgas abiertas a las que llega flujo: descargan
+  for(const o of run.oriented){
+    if(o.e.kind!=='purga')continue;
+    const it=o.e.it,pt=portsOf(it)[0],e=[pt.p[0]+pt.n[0]*12,pt.p[1]+pt.n[1]*12];
+    const L=run.oriented.find(x=>x.e.kind==='line'&&(x.to===o.from||x.from===o.from)),c=L?col(L.e.ln.fluid,pal):'#38BDF8',lc=lighten(c,.6);
+    s+=fluidPath(orientedD(o),c,2);
     s+=`<g pointer-events="none"><circle class="puff" cx="${e[0]}" cy="${e[1]}" r="5" fill="${lc}"/><circle class="puff d2" cx="${e[0]}" cy="${e[1]}" r="5" fill="${lc}"/></g>`;
+  }
+  // entradas del flujo
+  for(const sr of run.srcs){
+    let q;if(sr.type==='sym'){const it=get(sr.id);if(!it)continue;const b=rbb(it);q=[it.x,it.y+b[1]-16]}else q=sr.p;
+    s+=`<g pointer-events="none"><circle class="snapring" cx="${q[0]}" cy="${q[1]}" r="13" fill="none" stroke="#22B35E" stroke-width="2.5"/><circle cx="${q[0]}" cy="${q[1]}" r="9" fill="#22B35E" stroke="${pal.paper}" stroke-width="2"/><path d="M${q[0]-3},${q[1]-5} L${q[0]+5},${q[1]} L${q[0]-3},${q[1]+5} Z" fill="#fff"/>${animPick?`<text x="${q[0]}" y="${q[1]-17}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="10" fill="#22B35E" stroke="${pal.paper}" stroke-width="3" paint-order="stroke">ENTRADA</text>`:''}</g>`;
+  }
+  // modo elegir: candidatos
+  if(animPick){
+    const done=new Set(run.srcs.map(srcKey)),cand=new Set();
+    for(const L of S.items)if(L.type==='line')for(const q of[L.pts[0],L.pts[L.pts.length-1]])cand.add(pkey(q));
+    for(const h of S.items)if(h.type==='hose'){cand.add(pkey(h.a));cand.add(pkey(h.b))}
+    for(const k of cand){if(done.has(k))continue;const[x,y]=k.split(',').map(Number);s+=`<circle cx="${x}" cy="${y}" r="6" fill="none" stroke="#22B35E" stroke-width="2" stroke-dasharray="3 2" pointer-events="none"/>`}
   }
   return s;
 }
 /* ── Nivel de líquido en depósitos (modo animación) ── */
 const VESSELS=['deposito_v','deposito_h','deposito_bota','columna','reactor','tanque'];
 let LEVEL={},LCOLOR={},VST={},liqRAF=null,liqT=0,liqPhase=0;
-function vesselFlows(FI,it){
-  const ps=portsOf(it).map(q=>q.p),at=q=>ps.some(pp=>Math.abs(pp[0]-q[0])<.6&&Math.abs(pp[1]-q[1])<.6);
-  let inn=null,out=false,any=false;
-  for(const o of FI.values()){
-    const a=o.ln.pts[0],e=o.ln.pts[o.ln.pts.length-1];
-    if(at(e)){any=true;if(o.endLive&&!inn)inn=o}
-    if(at(a)){any=true;if(o.endLive&&a[1]>=it.y)out=true} // salida de líquido: bocas de la mitad de abajo
+function hasExit(run,node,selfHub,seen=new Set()){
+  if(seen.has(node))return false;seen.add(node);
+  if(node.startsWith('E:'))return node!==selfHub;
+  const nx=run.outMap.get(node);
+  if(!nx||!nx.length)return !node.startsWith('K:')&&!run.net.dead.has(node);
+  return nx.some(v=>v!==selfHub&&hasExit(run,v,selfHub,seen));
+}
+function vesselFlows(run,it){
+  const ps=portsOf(it),keys=new Map(ps.map(q=>[pkey(q.p),q]));let inn=null,out=false,any=false;
+  for(const L of run.net.lines)if(keys.has(pkey(L.pts[0]))||keys.has(pkey(L.pts[L.pts.length-1])))any=true;
+  for(const o of run.oriented){
+    if(o.e.kind!=='line'&&o.e.kind!=='hose')continue;
+    if(keys.has(o.to)&&!inn)inn=o;
+    if(keys.has(o.from)&&keys.get(o.from).p[1]>=it.y&&hasExit(run,o.to,'E:'+it.id))out=true; // salida de líquido: bocas de abajo
   }
   return{any,inn,out};
 }
-function drawLiquids(FI,pal){
+function drawLiquids(run,pal){
   let s='';VST={};
   for(const it of S.items){
     if(it.type!=='sym'||!VESSELS.includes(it.kind))continue;
-    const f=vesselFlows(FI,it);if(!f.any)continue;
-    if(f.inn)LCOLOR[it.id]=col(f.inn.ln.fluid,pal);
+    const f=vesselFlows(run,it);if(!f.any)continue;
+    if(f.inn)LCOLOR[it.id]=edgeColor(f.inn.e,pal);
     const c=LCOLOR[it.id]||'#38BDF8',d=SYM[it.kind],sc=it.scale||1,b=rbb(it),tr=`rotate(${it.rot||0}) scale(${(it.flip?-1:1)*sc} ${sc})`,oc=col(it.fluid,pal);
     if(LEVEL[it.id]==null)LEVEL[it.id]=.15;
     VST[it.id]={target:f.inn&&f.out?.5:f.inn?.92:f.out?.04:null,b};
@@ -806,8 +867,7 @@ function startLiq(){liqT=0;if(!liqRAF)liqRAF=requestAnimationFrame(liqTick)}
 function applySpeed(){stage.style.setProperty('--fd',{l:'1.6s',n:'.9s',r:'.45s'}[animSpeed]);stage.classList.toggle('paused',animPaused)}
 function renderAnim(){
   const box=$('#asideAnim');if(mode!=='anim'){box.innerHTML='';return}
-  let tot=0,live=0,cl=0;
-  if(lastFI)for(const o of lastFI.values()){tot+=o.len;for(const[a,b]of o.iv)live+=b-a}
+  let tot=lastRun?lastRun.tot:0,live=lastRun?lastRun.live:0,cl=0;
   for(const id in MSTATE)if(MSTATE[id]==='closed')cl++;
   const m=M();
   box.innerHTML=`<section class="sec mf"><div class="sh"><span class="n">01</span><h3>Animación</h3></div>
@@ -815,23 +875,53 @@ function renderAnim(){
   <label>Velocidad</label>${seg('speed',[['l','Lenta'],['n','Normal'],['r','Rápida']],animSpeed).replace(/data-act=/g,'data-aact=')}
   <label>Estilo</label>${seg('style',[['part','Partículas'],['corr','Corriente']],animStyle).replace(/data-act=/g,'data-aact=')}
   </section>
-  <section class="sec mf"><div class="sh"><span class="n">02</span><h3>Partir de</h3></div>
+  <section class="sec mf"><div class="sh"><span class="n">02</span><h3>Entrada del flujo</h3>${S.flowSrc?'<button class="act" data-aact="srcauto">Automático</button>':''}</div>
+  <p class="anote">${S.flowSrc?'Entradas elegidas por ti':'Entradas automáticas (límites de batería donde empieza una línea)'}:</p>
+  <div class="vchips">${flowSources().map(sr=>`<button class="vchip" data-src="${srcKey(sr)}" title="Ver en el plano"><i style="background:#22B35E"></i><b>${esc(srcName(sr))}</b></button>`).join('')||'<span class="anote">Ninguna: no hay flujo.</span>'}</div>
+  <div class="mrow"><button class="btn ${animPick?'pri':'sm'} wide" data-aact="pick">${animPick?'✓ Terminar de elegir':'✚ Elegir entradas'}</button></div>
+  ${animPick?'<p class="anote" style="margin-top:8px;color:#22B35E">Toca el <b>extremo de una línea</b>, un <b>límite</b> o un <b>equipo</b> para que el flujo salga de ahí. Vuelve a tocarlo para quitarlo.</p>':''}
+  </section>
+  <section class="sec mf"><div class="sh"><span class="n">03</span><h3>Partir de</h3></div>
   ${seg('base',[['plano','El plano'],['man','La maniobra']],animBase).replace(/data-act=/g,'data-aact=')}
   <p class="anote" style="margin-top:8px">${animBase==='man'?(m?`Unidad aislada según «${esc(m.title)}».`:'Este plano no tiene maniobras.'):'Válvulas tal como están dibujadas en el plano.'}</p>
   </section>
-  <section class="sec"><div class="sh"><span class="n">03</span><h3>Simulador</h3></div>
+  <section class="sec"><div class="sh"><span class="n">04</span><h3>Simulador</h3></div>
   <p class="anote">Toca una <b>válvula</b>, una <b>purga</b> o una <b>manguera</b> del plano para abrirla o cerrarla y mira cómo cambia el flujo. Toca una <b>PSV</b> para dispararla. El plano no se modifica.</p>
   <div class="astat"><div><b>${tot?Math.round(live/tot*100):0}%</b><span>Tuberías con flujo</span></div><div><b>${cl}</b><span>Cerradas</span></div></div>
   <div class="mrow"><button class="btn sm wide" data-aact="reset">↺ Restablecer</button></div></section>
   <div class="foot"><b>P</b> pausa · <b>0</b> encuadrar<br>Lo apagado no tiene flujo · <b>Rojo</b> = cerrado<br>Depósitos: <b>▲</b> llenando · <b>▼</b> vaciando · <b>≈</b> estable</div>`;
 }
 $('#asideAnim').addEventListener('click',e=>{
+  const sc=e.target.closest('[data-src]');
+  if(sc){const[x,y]=sc.dataset.src.startsWith('E:')?(()=>{const it=get(sc.dataset.src.slice(2));return it?[it.x,it.y]:[0,0]})():sc.dataset.src.split(',').map(Number);const r=svg.getBoundingClientRect();view.x=r.width/2-x*view.k;view.y=r.height/2-y*view.k;applyView();renderOver();setTimeout(()=>snapFx([x,y],{kind:'port'}),30);return}
   const b=e.target.closest('[data-aact]');if(!b)return;const a=b.dataset.aact,v=b.dataset.v;
   if(a==='pause')animPaused=!animPaused;
   else if(a==='speed')animSpeed=v; else if(a==='style')animStyle=v;
   else if(a==='base'){animBase=v;SIM={};LEVEL={}} else if(a==='reset'){SIM={};LEVEL={}}
-  applySpeed();renderCanvas();renderAnim();
+  else if(a==='pick')animPick=!animPick;
+  else if(a==='srcauto'){S.flowSrc=null;LEVEL={};commit();toast('Entradas automáticas')}
+  applySpeed();renderCanvas();renderAnim();renderTools();
 });
+function srcName(sr){
+  if(sr.type==='sym'){const it=get(sr.id);return it?(it.tag||SYM[it.kind].n):'(borrado)'}
+  const k=pkey(sr.p),o=portOwners().get(k);if(o)return o.tag||SYM[o.kind].n;
+  const L=S.items.find(l=>l.type==='line'&&(pkey(l.pts[0])===k||pkey(l.pts[l.pts.length-1])===k));if(L)return 'Línea de '+fl(L.fluid).name.toLowerCase();
+  const h=S.items.find(x=>x.type==='hose'&&(pkey(x.a)===k||pkey(x.b)===k));return h?(HOSES[h.kind]||HOSES.agua).n:'Punto';
+}
+function pickSource(it,p){
+  let sr=null;const d=q=>Math.hypot(q[0]-p[0],q[1]-p[1]);
+  if(it.type==='line'){const a=it.pts[0],b=it.pts[it.pts.length-1];sr={type:'pt',p:[...(d(a)<=d(b)?a:b)]}}
+  else if(it.type==='hose')sr={type:'pt',p:[...(d(it.a)<=d(it.b)?it.a:it.b)]};
+  else if(it.type==='sym'&&!isInline(it.kind)&&it.kind!=='instrumento'){
+    if(it.kind==='limite'){const ps=portsOf(it).sort((a,b)=>d(a.p)-d(b.p));sr={type:'pt',p:[...ps[0].p]}}else sr={type:'sym',id:it.id};
+  }
+  if(!sr){toast('Toca una línea, un límite o un equipo');return}
+  if(!S.flowSrc)S.flowSrc=clone(autoSources());
+  const k=srcKey(sr),i=S.flowSrc.findIndex(x=>srcKey(x)===k);
+  if(i>=0){S.flowSrc.splice(i,1);toast('Entrada quitada')}else{S.flowSrc.push(sr);toast('Entrada: '+srcName(sr))}
+  LEVEL={};commit();renderCanvas();renderAnim();
+  const q=sr.type==='pt'?sr.p:[it.x,it.y];snapFx(q,{kind:'port'});
+}
 function simToggle(it){
   const cur=MSTATE[it.id]||(it.type==='hose'?'on':it.kind==='psv'?'closed':it.closed?'closed':'open');
   SIM[it.id]=it.type==='hose'?(cur==='off'?'on':'off'):(cur==='closed'?'open':'closed');
@@ -843,9 +933,9 @@ function renderItems(pal,hit,man){
   const lines=S.items.filter(i=>i.type==='line');
   VSEGS=[];for(const l of lines)for(let i=0;i<l.pts.length-1;i++){const a=l.pts[i],b=l.pts[i+1];if(a[0]===b[0]&&a[1]!==b[1])VSEGS.push({id:l.id,x:a[0],y0:Math.min(a[1],b[1]),y1:Math.max(a[1],b[1])})}
   let s=lines.map(l=>drawLine(l,pal,hit)).join('');
-  let FI=null;
-  if(anim){FI=flowIntervals(lines,mst);s=`<g opacity=".28">${s}</g>`+drawFlowFancy(FI,pal)}
-  else if(hit&&flowOn)s+=drawFlow(lines,pal,mst);
+  const RUN=anim||(hit&&flowOn)?flowRun(mst):null;
+  if(anim)s=`<g opacity=".28">${s}</g>`+drawFlowFancy(RUN,pal,['line']);
+  else if(RUN)s+=drawFlow(RUN,pal,['line']);
   s+=junctions(lines,pal);
   for(const it of S.items){
     if(it.type==='sym')s+=drawSym(it,pal,hit);
@@ -854,10 +944,10 @@ function renderItems(pal,hit,man){
     else if(it.type==='title')s+=drawTitle(it,pal);
   }
   for(const it of S.items)if(it.type==='hose')s+=drawHose(it,pal,hit);
-  if(anim)s+=drawLiquids(FI,pal)+drawAnimExtras(FI,pal);
-  else if(hit&&flowOn)for(const h of S.items)if(h.type==='hose'&&MSTATE[h.id]!=='off'){const q=hoseCtrl(h.a,h.b);s+=`<path class="flow" d="M${h.a[0]},${h.a[1]} Q${q[0]},${q[1]} ${h.b[0]},${h.b[1]}" fill="none" stroke="${pal.paper}" stroke-width="2.6" stroke-dasharray="6 12" opacity=".8" pointer-events="none"/>`}
+  if(anim)s+=drawLiquids(RUN,pal)+drawFlowFancy(RUN,pal,['hose'])+drawAnimExtras(RUN,pal);
+  else if(RUN)s+=drawFlow(RUN,pal,['hose','purga']);
   if(mst)s+=drawManOverlay(man,mst,pal);
-  if(anim)lastFI=FI;
+  if(anim)lastRun=RUN;
   return s;
 }
 
@@ -941,7 +1031,7 @@ function renderTools(){
   $$('.tile').forEach(t=>t.classList.toggle('on',(tool==='stamp'&&t.dataset.kind===stamp)||(tool==='hose'&&t.dataset.kind==='hose_'+hoseKind)));
   stage.className='stage t-'+tool+(theme==='papel'?' paper':'')+(mode==='anim'?' anim':'')+(mode==='anim'&&animPaused?' paused':'');
   const hints={select:'Clic: seleccionar · Arrastrar: mover · Clic en un cuadradito de un equipo: sacar línea',line:drawingL?'Clic: codo · Doble clic / Enter: terminar · se engancha sola':'Clic para empezar · se engancha a bocas y líneas',hose:drawingH?'Clic en el destino · se engancha sola':'Clic en el origen de la manguera',text:'Clic para escribir',hand:'Arrastra para moverte',stamp:'Clic para colocar · Esc: cancelar'};
-  if(mode==='anim'){$('#stTool').innerHTML=`<b style="color:#38BDF8">ANIMACIÓN</b> &nbsp;Toca una válvula, purga o manguera para abrirla o cerrarla`;stage.classList.add('anim');return}
+  if(mode==='anim'){$('#stTool').innerHTML=animPick?`<b style="color:#22B35E">ELEGIR ENTRADAS</b> &nbsp;Toca el extremo de una línea, un límite o un equipo`:`<b style="color:#38BDF8">ANIMACIÓN</b> &nbsp;Toca una válvula, purga o manguera para abrirla o cerrarla`;stage.classList.add('anim');return}
   if(mode==='man'){$('#stTool').innerHTML=`<b style="color:#E5484D">MANIOBRA</b> &nbsp;Toca una válvula, línea o equipo para añadir un paso`;return}
   $('#stTool').innerHTML=`<b>${(TOOLS.find(t=>t.k===tool)||{n:tool==='hose'?'Manguera':'Colocar'}).n.toUpperCase()}</b> &nbsp;${hints[tool]}`;
 }
@@ -1291,6 +1381,7 @@ svg.addEventListener('pointerdown',e=>{
   if(e.button===1||e.button===2||tool==='hand'||spaceDown){drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};stage.classList.add('panning');return}
   if(mode==='anim'){
     const node=e.target.closest('[data-id]'),it=node&&get(node.dataset.id);
+    if(animPick){if(it){pickSource(it,p);return}drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};return}
     if(it&&((it.type==='sym'&&(CLOSABLE.includes(it.kind)||it.kind==='ciego'||it.kind==='psv'))||it.type==='hose')){simToggle(it);return}
     drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};return;
   }
@@ -1754,6 +1845,7 @@ function setMode(md){
   $('.app').classList.toggle('man',md==='man');
   $('.app').classList.toggle('anim',md==='anim');
   stage.classList.toggle('anim',md==='anim');
+  animPick=false;
   if(md==='anim'){SIM={};LEVEL={};LCOLOR={};if(!M())animBase='plano';setTimeout(startLiq,0)}
   applySpeed();
   $$('[data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===md));

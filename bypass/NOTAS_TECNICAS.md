@@ -65,6 +65,12 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
 - **Estado de válvulas en maniobra**: `manState()` completa el estado de todas las válvulas (las que no tocan los pasos toman el del plano). En modo maniobra y en la hoja (`SHOWST`) se rellenan de color: `VC()` cerrada y `VO()` abierta. El convenio rojo/verde se puede invertir y se guarda en `localStorage` (`bypass.vconv`).
   - Visor paso a paso (`manView`): estado tras el paso k; los pasos posteriores se ven atenuados.
   - Panel «Estado de válvulas»: listas de cerradas y abiertas con su tipo. Tocar una centra el plano en ella.
+- **Red de flujo por entradas** (sustituye al cálculo antiguo por sentido de dibujo):
+  - `flowNet()` arma un grafo no dirigido. Los nudos son extremos de tramo, bifurcaciones y bocas. Las válvulas cerradas, los ciegos y las PSV sin disparar cortan; los equipos y las válvulas abiertas conectan sus bocas; las mangueras y las purgas abiertas también.
+  - `flowRun()` recorre el grafo desde las entradas y orienta cada tramo según por dónde le llega el flujo. El sentido en que se dibujó cada línea ya no importa.
+  - Entradas: `S.flowSrc` (se guardan con el plano) o, si no hay, `autoSources()`. Automáticas: límites de batería con algo conectado en la punta de la flecha (salvo los que empiezan por «A …») y líneas que empiezan sueltas.
+  - En el modo animación, «Elegir entradas» activa `animPick`: tocar un extremo de línea o manguera, un límite o un equipo pone o quita esa entrada.
+  - El nivel de los depósitos usa `vesselFlows()` y `hasExit()`: solo cuenta la salida si el flujo llega a algún sitio, no si acaba en una válvula cerrada.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
 ## Móvil y tablet
