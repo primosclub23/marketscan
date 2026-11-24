@@ -276,8 +276,20 @@ details.vlist[open] summary::before{content:'▾ '}
 .paper .sign{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:26px}
 .paper .sign div{border-top:1.5px solid #111;padding-top:4px;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:#444;height:50px}
 .paper .legal{margin-top:14px;font-size:10.5px;color:#555;border-top:1px solid #111;padding-top:7px;display:flex;justify-content:space-between;gap:20px}
+.paper.pdfmode{width:fit-content;padding:18px;margin:24px auto 40px}
+.pdfpage{display:flex;flex-direction:column;gap:3mm;background:#fff;zoom:var(--pz,.7)}
+.pdfplan{flex:1;min-height:0;border:.4mm solid #111;display:flex}
+.pdfplan svg{width:100%;height:100%}
+.pdfplan.bn{filter:grayscale(1)}
+.cj{width:100%;border-collapse:collapse}
+.cj td{border:.35mm solid #111;padding:1.6mm 2.6mm;vertical-align:top;font-size:11px}
+.cj small{display:block;font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;color:#555;margin-bottom:.6mm}
+.cj b{font-family:var(--cond);font-size:15px;letter-spacing:.02em}
+.cj td.lg{text-align:right;width:28%}
+.cj td.lg b{font-weight:800;letter-spacing:.2em;font-size:16px}
 @media print{
-  @page{size:A4;margin:11mm}
+  .pdfpage{zoom:1!important}
+  .paper.pdfmode{padding:0!important;margin:0!important;width:auto!important}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   html,body{overflow:visible;height:auto;background:#fff}
   .app,.modal,.toast{display:none!important}
@@ -317,6 +329,7 @@ details.vlist[open] summary::before{content:'▾ '}
   .fluids{grid-template-columns:1fr}
 }
 </style>
+<style id="pgsize"></style>
 </head>
 <body>
 <div class="app">
@@ -344,7 +357,8 @@ details.vlist[open] summary::before{content:'▾ '}
       <button class="btn" id="bOpen" title="Abrir archivo .bypass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5h7l2 2h9v12H3z"/></svg><span class="lbl">Abrir</span></button>
       <button class="btn" id="bSave" title="Guardar archivo (Ctrl+S)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/></svg><span class="lbl">Guardar</span></button>
       <button class="btn" id="bSvg" title="Exportar SVG"><span class="lbl">SVG</span></button>
-      <button class="btn pri" id="bPng" title="Exportar imagen PNG"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg><span class="lbl">Exportar</span></button>
+      <button class="btn pri" id="bPdf" title="Exportar a PDF o imprimir (A4 / A3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg><span class="lbl">PDF</span></button>
+      <button class="btn" id="bPng" title="Exportar imagen PNG"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg><span class="lbl">PNG</span></button>
     </div>
   </header>
   <div class="hazard"></div>
@@ -364,7 +378,7 @@ details.vlist[open] summary::before{content:'▾ '}
       <div class="grid" data-group="eq"></div>
     </section>
     <section class="sec">
-      <div class="sh"><span class="n">04</span><h3>Válvulas</h3></div>
+      <div class="sh"><span class="n">04</span><h3>Válvulas</h3><button class="act" id="bNum" title="Pone V-01, V-02… a las válvulas sin tag">Numerar</button></div>
       <div class="grid" data-group="va"></div>
     </section>
     <section class="sec">
@@ -379,6 +393,8 @@ details.vlist[open] summary::before{content:'▾ '}
       <b>L</b> línea · <b>V</b> mover · <b>T</b> texto · <b>H</b> mano<br>
       <b>1–9</b> fluido · <b>C</b> abrir/cerrar · <b>R</b> girar · <b>F</b> espejo<br>
       <b>Supr</b> borrar · <b>Ctrl+D</b> duplicar<br>
+      <b>Arrastrar</b> en vacío: seleccionar varios<br>
+      <b>Mayús+clic</b> añadir · <b>Ctrl+C/V</b> copiar<br>
       <b>Rueda</b> zoom · <b>Espacio</b>+arrastrar mover<br>
       <b>Imán</b>: acerca y se engancha solo<br>
       <b>A</b> ver el flujo animado<br>
@@ -424,7 +440,7 @@ details.vlist[open] summary::before{content:'▾ '}
 </div>
 <input type="file" id="fileIn" accept=".bypass,.json,application/json" hidden>
 <div class="toast" id="toast"></div>
-<div id="sheet"><div class="sheet-bar"><span class="t">Hoja de maniobra<small>Imprime o guarda como PDF desde el diálogo de impresión</small></span><span style="display:flex;gap:8px"><button class="btn" id="shClose">Cerrar</button><button class="btn pri" id="shPrint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg>Imprimir / PDF</button></span></div><div class="paper" id="paper"></div></div>
+<div id="sheet"><div class="sheet-bar"><span class="t" id="shTitle">Hoja de maniobra<small>Imprime o guarda como PDF desde el diálogo de impresión</small></span><span id="shOpts" style="display:flex;gap:8px;align-items:center"></span><span style="display:flex;gap:8px"><button class="btn" id="shClose">Cerrar</button><button class="btn pri" id="shPrint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg>Imprimir / PDF</button></span></div><div class="paper" id="paper"></div></div>
 
 <script>
 'use strict';
@@ -465,6 +481,10 @@ const SYM={
   bomba:{n:'Bomba',g:'eq',tag:'P',bb:[-20,-20,30,24],d:()=>'<path d="M-14,13 L-20,24 H20 L14,13"/><circle r="20"/><path fill="none" d="M0,-20 H30"/>'},
   tanque:{n:'Tanque',g:'eq',tag:'T',bb:[-55,-40,55,40],d:()=>'<path d="M-55,-25 Q0,-55 55,-25 V40 H-55 Z"/>'},
 
+  eyector:{n:'Eyector',g:'eq',tag:'J',bb:[-40,-24,40,12],d:()=>'<path d="M-40,-7 H-14 L0,-3 L40,-12 V12 L0,3 L-14,7 H-40 Z"/><path fill="none" d="M-6,-5 V-24"/><path fill="none" stroke-width="1.4" d="M-40,0 H-14"/>'},
+  turbina:{n:'Turbina',g:'eq',tag:'TB',bb:[-30,-24,30,24],d:()=>'<path d="M-30,-12 L30,-24 L30,24 L-30,12 Z"/><path fill="none" stroke-width="1.4" d="M-10,-16 V16 M6,-19 V19"/>'},
+  filtro:{n:'Filtro',g:'eq',tag:'F',bb:[-22,-34,22,34],d:()=>'<rect x="-22" y="-34" width="44" height="68" rx="6"/><path fill="none" stroke-width="1.6" stroke-dasharray="5 4" d="M-22,34 L22,-34"/>'},
+  filtro_y:{n:'Filtro en Y',g:'va',tag:'',bb:[-16,-8,16,20],d:()=>'<path d="M-16,-6 H16 V6 H-16 Z"/><path d="M-4,4 L8,16 L13,11 L1,-1 Z"/>'},
   manual:{n:'Manual',g:'va',tag:'',bb:[-20,-12,20,12],d:()=>BOW},
   control:{n:'Automática',g:'va',tag:'FV',bb:[-20,-35,20,12],d:()=>BOW+'<path fill="none" d="M0,0 V-22"/><path d="M-13,-22 A13,13 0 0 1 13,-22 Z"/>'},
   motor:{n:'Motorizada',g:'va',tag:'MOV',bb:[-20,-42,20,12],d:c=>BOW+'<path fill="none" d="M0,0 V-22"/><rect x="-11" y="-42" width="22" height="20"/><text y="-27.5" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="12" fill="'+c+'" stroke="none">M</text>'},
@@ -495,6 +515,10 @@ const PORTS={
   horno:[[-50,20],[50,20],[0,70],[0,-90]],
   compresor:[[-30,0],[30,0]],
   bomba:[[-20,0],[30,-20,1,0]],
+  eyector:[[-40,0],[-6,-24,0,-1],[40,0]],
+  turbina:[[-30,0],[30,0]],
+  filtro:[[0,-34],[0,34],[-22,0],[22,0],[-22,-20],[22,20]],
+  filtro_y:[[-16,0],[16,0]],
   tanque:[[-55,10],[55,10],[-55,30],[55,30],[0,-40],[0,40]],
   manual:[[-20,0],[20,0]],control:[[-20,0],[20,0]],motor:[[-20,0],[20,0]],retencion:[[-20,0],[20,0]],
   tresvias:[[-20,0],[20,0],[0,24]],
@@ -508,7 +532,7 @@ const bbOf=(kind,it)=>{const b=SYM[kind].bb;return typeof b==='function'?b(it):b
 let S, view={x:0,y:0,k:1}, theme='noche', P=THEMES.noche;
 let tool='select', stamp=null, sel=null, curFluid='proc';
 let drag=null, drawingL=null, ghostAt=null, spaceDown=false, editing=null, lastDown={t:0,id:null,p:null};
-let hist=[], hi=-1;
+let hist=[], hi=-1, msel=new Set(), pasteN=0;
 const uid=()=>Math.random().toString(36).slice(2,9);
 const get=id=>S.items.find(i=>i.id===id);
 const snap=v=>Math.round(v/GRID)*GRID, sp=p=>[snap(p[0]),snap(p[1])];
@@ -589,8 +613,8 @@ function drawSym(it,pal,hit){
   const d=SYM[it.kind]; if(!d)return '';
   const ms=MSTATE[it.id]; let c=col(it.fluid,pal); if(ms==='closed'&&it.kind==='ciego')c=SHOWST?VC():RED;
   const s=it.scale||1, bb=bbOf(it.kind,it), b=rbb(it);
-  const isV=CLOSABLE.includes(it.kind), shut=(ms?ms==='closed':it.closed)&&isV, showOpen=SHOWST&&isV&&ms==='open';
-  const fc=SHOWST?(shut?VC():VO()):(ms==='closed'?RED:c);
+  const isV=CLOSABLE.includes(it.kind), shut=(ms?ms==='closed':it.closed)&&isV, showOpen=SHOWST&&isV&&ms==='open'&&!BN();
+  const fc=SHOWST?(shut?(BN()?pal.ink:VC()):VO()):(ms==='closed'?RED:c);
   let t='';
   if(it.tag){
     if(d.side)t=`<text x="${it.flip?b[0]-4*s:b[2]+4*s}" y="${(b[1]+b[3])/2+4}" text-anchor="${it.flip?'end':'start'}" class="tg" font-family="JetBrains Mono,monospace" font-weight="700" font-size="${10*s}" fill="${c}" stroke="${pal.paper}" stroke-width="3.5" stroke-linejoin="round" paint-order="stroke">${esc(it.tag)}</text>`;
@@ -1006,6 +1030,9 @@ function renderCanvas(){
 }
 function renderOver(){
   const k=view.k, sw=1.5/k, sc=P.sel; let s='';
+  if(msel.size){let B=[1e9,1e9,-1e9,-1e9];for(const i of msel){const it=get(i);if(!it)continue;const b=bboxItem(it);B=[Math.min(B[0],b[0]),Math.min(B[1],b[1]),Math.max(B[2],b[2]),Math.max(B[3],b[3])];s+=`<rect x="${b[0]-3}" y="${b[1]-3}" width="${b[2]-b[0]+6}" height="${b[3]-b[1]+6}" fill="none" stroke="${sc}" stroke-width="${sw*.8}" stroke-dasharray="${3/k} ${3/k}" opacity=".8" pointer-events="none"/>`}
+    s+=`<rect x="${B[0]-10}" y="${B[1]-10}" width="${B[2]-B[0]+20}" height="${B[3]-B[1]+20}" fill="${sc}" fill-opacity=".04" stroke="${sc}" stroke-width="${sw}" stroke-dasharray="${7/k} ${4/k}" pointer-events="none"/>`}
+  if(drag&&drag.t==='box'){const x=Math.min(drag.p0[0],drag.p1[0]),y=Math.min(drag.p0[1],drag.p1[1]);s+=`<rect x="${x}" y="${y}" width="${Math.abs(drag.p1[0]-drag.p0[0])}" height="${Math.abs(drag.p1[1]-drag.p0[1])}" fill="${sc}" fill-opacity=".08" stroke="${sc}" stroke-width="${sw}" stroke-dasharray="${5/k} ${3/k}" pointer-events="none"/>`}
   const it=sel&&get(sel);
   if(it){
     if(it.type==='sym'){const b=rbb(it);s+=`<rect x="${it.x+b[0]-6}" y="${it.y+b[1]-6}" width="${b[2]-b[0]+12}" height="${b[3]-b[1]+12}" fill="none" stroke="${sc}" stroke-width="${sw}" stroke-dasharray="${5/k} ${4/k}" pointer-events="none"/>`}
@@ -1099,7 +1126,13 @@ function swatches(cur,act){
 }
 function seg(act,opts,cur){return '<div class="seg">'+opts.map(([v,l])=>`<button data-act="${act}" data-v="${v}" class="${String(cur)===String(v)?'on':''}">${l}</button>`).join('')+'</div>'}
 function renderInspector(){
-  const box=$('#insp'), it=mode==='draw'&&sel&&get(sel);
+  const box=$('#insp');
+  if(mode==='draw'&&msel.size){
+    box.hidden=false;
+    box.innerHTML=`<div class="ih"><span class="code">SEL</span><b>${msel.size} elementos</b><button data-act="close" title="Cerrar">×</button></div><div class="ib"><div><label>Color de líneas y símbolos</label>${swatches(null,'fluid')}</div><div class="row"><button class="btn" data-act="copy">Copiar</button><button class="btn" data-act="dup">Duplicar</button></div><div class="row"><button class="btn danger" data-act="del">Borrar</button></div><p style="font-size:12px;color:var(--tx3)">Arrastra para mover el grupo. Ctrl+C / Ctrl+V para copiar a otro plano.</p></div>`;
+    return;
+  }
+  const it=mode==='draw'&&sel&&get(sel);
   if(!it){box.hidden=true;return}
   box.hidden=false; let title, code, body='';
   if(it.type==='sym'){
@@ -1142,7 +1175,7 @@ function commit(){
   const el=$('#saved'); el.innerHTML='<b>●</b> guardado'; clearTimeout(saveT);
   updUndo();
 }
-function restore(s){S=JSON.parse(s);if(sel&&!get(sel))sel=null;$('#docName').value=S.name;try{localStorage.setItem(KEY,s)}catch(e){}renderAll()}
+function restore(s){S=JSON.parse(s);if(sel&&!get(sel))sel=null;msel=new Set([...msel].filter(i=>get(i)));$('#docName').value=S.name;try{localStorage.setItem(KEY,s)}catch(e){}renderAll()}
 function undo(){if(hi>0){hi--;restore(hist[hi])}}
 function redo(){if(hi<hist.length-1){hi++;restore(hist[hi])}}
 function updUndo(){$('#bUndo').disabled=hi<=0;$('#bRedo').disabled=hi>=hist.length-1}
@@ -1342,8 +1375,27 @@ function finishLine(){
   if(pts.length>=2){const it={id:uid(),type:'line',pts,fluid:curFluid,arrow:true};S.items.push(it);commit()}
   renderAll();
 }
-function delSel(){if(!sel)return;S.items=S.items.filter(i=>i.id!==sel);sel=null;commit();renderAll()}
+/* Numera las válvulas sin tag (V-01, V-02…) en orden de lectura: de arriba abajo y de izquierda a derecha */
+function numberValves(){
+  const vs=S.items.filter(i=>i.type==='sym'&&(CLOSABLE.includes(i.kind)||i.kind==='retencion')&&!PURGA.includes(i.kind)&&!(i.tag||'').trim());
+  if(!vs.length){toast('Todas las válvulas tienen tag');return}
+  vs.sort((a,b)=>Math.round(a.y/40)-Math.round(b.y/40)||a.x-b.x);
+  let n=Math.max(0,...S.items.filter(i=>i.type==='sym'&&/^V-\d+$/.test(i.tag||'')).map(i=>+i.tag.slice(2)));
+  for(const v of vs){n++;v.tag='V-'+String(n).padStart(2,'0')}
+  commit();renderAll();toast(vs.length+(vs.length===1?' válvula numerada':' válvulas numeradas'));
+}
+function selIds(){return msel.size?[...msel]:sel?[sel]:[]}
+function moveItem(it,o,dx,dy){if(it.type==='line')it.pts=o.pts.map(q=>[q[0]+dx,q[1]+dy]);else if(it.type==='hose'){it.a=[o.a[0]+dx,o.a[1]+dy];it.b=[o.b[0]+dx,o.b[1]+dy]}else{it.x=o.x+dx;it.y=o.y+dy}}
+function setMulti(ids){msel=new Set(ids);if(msel.size===1){sel=[...msel][0];msel.clear()}else sel=null}
+function pasteItems(list,off){
+  const ids=[];for(const o of list){const c=clone(o);c.id=uid();moveItem(c,o,off,off);if(c.type==='sym'&&c.tag&&!SYM[c.kind].inside&&!SYM[c.kind].fixed&&SYM[c.kind].tag&&S.items.some(i=>i.tag===c.tag))c.tag=autoTag(c.kind);S.items.push(c);ids.push(c.id)}
+  setMulti(ids);commit();renderAll();
+}
+function copySel(){const ids=selIds();if(!ids.length)return;const list=ids.map(get).filter(Boolean);try{localStorage.setItem('bypass.clip',JSON.stringify(list))}catch(e){}pasteN=0;toast(list.length+(list.length===1?' elemento copiado':' elementos copiados'))}
+function pasteClip(){let list=null;try{list=JSON.parse(localStorage.getItem('bypass.clip')||'null')}catch(e){}if(!list||!list.length){toast('No hay nada copiado');return}pasteN++;pasteItems(list,30*pasteN)}
+function delSel(){const ids=new Set(selIds());if(!ids.size)return;S.items=S.items.filter(i=>!ids.has(i.id));sel=null;msel.clear();commit();renderAll()}
 function dupSel(){
+  if(msel.size){pasteItems([...msel].map(get).filter(Boolean),20);return}
   const it=sel&&get(sel); if(!it)return; const c=clone(it); c.id=uid();
   if(c.type==='line')c.pts=c.pts.map(p=>[p[0]+20,p[1]+20]); else if(c.type==='hose'){c.a=[c.a[0]+20,c.a[1]+20];c.b=[c.b[0]+20,c.b[1]+20]} else{c.x+=20;c.y+=20}
   if(c.type==='sym'&&c.tag&&!SYM[c.kind].inside&&SYM[c.kind].tag)c.tag=autoTag(c.kind);
@@ -1475,12 +1527,16 @@ svg.addEventListener('pointerdown',e=>{
     if(i+1===pts.length-1)pts.push([pts[pts.length-1][0],pts[pts.length-1][1]]);
     it.pts=pts;drag={t:'seg',i,horiz,orig:clone(pts),p0:p};return;
   }
+  if(id&&e.shiftKey){const ids=new Set(selIds());if(ids.has(id))ids.delete(id);else ids.add(id);setMulti([...ids]);renderAll();return}
+  if(id&&msel.has(id)){const origs=new Map([...msel].map(i=>[i,clone(get(i))]));drag={t:'mmove',p0:p,origs,moved:false};return}
   if(id){
+    if(msel.size){msel.clear()}
     if(sel!==id){sel=id;renderAll()}
     const it=get(id),glue=it.type==='sym'&&!isInline(it.kind)?findGlue(it):[];
     drag={t:'move',p0:p,orig:clone(it),moved:false,glue,keys:new Set(glue.flatMap(gl=>gl.type==='line'?gl.idxs.map(i=>gl.id+':'+i):gl.ends.map(k=>gl.id+':'+k)))};return;
   }
-  if(sel){sel=null;renderAll()}
+  if(e.pointerType==='mouse'&&!spaceDown){if(!e.shiftKey&&(sel||msel.size)){sel=null;msel.clear();renderAll()}drag={t:'box',p0:p,p1:p,add:e.shiftKey};return}
+  if(sel||msel.size){sel=null;msel.clear();renderAll()}
   drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};
 });
 svg.addEventListener('pointermove',e=>{
@@ -1488,6 +1544,8 @@ svg.addEventListener('pointermove',e=>{
   $('#stPos').textContent=`X ${g[0]} · Y ${g[1]}`;
   if(drag){
     if(drag.t==='pan'){view.x=drag.vx+e.clientX-drag.sx;view.y=drag.vy+e.clientY-drag.sy;applyView();return}
+    if(drag.t==='box'){drag.p1=p;renderOver();return}
+    if(drag.t==='mmove'){const dx=snap(p[0]-drag.p0[0]),dy=snap(p[1]-drag.p0[1]);if(dx||dy)drag.moved=true;for(const[i,o]of drag.origs){const it=get(i);if(it)moveItem(it,o,dx,dy)}renderCanvas();return}
     const it=get(sel); if(!it)return;
     if(drag.t==='move'){
       if(it.type==='sym'){
@@ -1529,6 +1587,13 @@ svg.addEventListener('pointermove',e=>{
 });
 function endDrag(){
   if(!drag)return; const d=drag; drag=null; stage.classList.remove('panning');
+  if(d.t==='box'){
+    const x0=Math.min(d.p0[0],d.p1[0]),x1=Math.max(d.p0[0],d.p1[0]),y0=Math.min(d.p0[1],d.p1[1]),y1=Math.max(d.p0[1],d.p1[1]);
+    if(x1-x0<4&&y1-y0<4){renderOver();return}
+    const inside=S.items.filter(it=>{const b=bboxItem(it);return b[0]>=x0&&b[2]<=x1&&b[1]>=y0&&b[3]<=y1}).map(i=>i.id);
+    setMulti(d.add?[...new Set([...selIds(),...inside])]:inside);renderAll();return;
+  }
+  if(d.t==='mmove'){if(d.moved){commit();renderAll()}return}
   if(d.t==='seg'||d.t==='vtx'){const it=get(sel);if(it)it.pts=simplify(it.pts)}
   if(d.t==='move'&&d.glue)for(const gl of d.glue)if(gl.type==='line'){const L=get(gl.id);if(L)L.pts=simplify(L.pts)}
   if(snapT&&d.moved)snapFx(snapT.p,snapT);
@@ -1558,7 +1623,12 @@ document.addEventListener('click',e=>{
 /* inspector */
 $('#insp').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]'); if(!b)return; const it=get(sel), a=b.dataset.act, v=b.dataset.v;
-  if(a==='close'){sel=null;renderAll();return}
+  if(a==='close'){sel=null;msel.clear();renderAll();return}
+  if(msel.size){
+    if(a==='del')return delSel(); if(a==='dup')return dupSel(); if(a==='copy')return copySel();
+    if(a==='fluid'){for(const i of msel){const o=get(i);if(o&&(o.type==='line'||o.type==='sym'||o.type==='text'))o.fluid=v==='proc'?null:v}commit();renderAll()}
+    return;
+  }
   if(!it)return;
   if(a==='fluid'){setFluid(v);return}
   if(a==='del')return delSel(); if(a==='dup')return dupSel();
@@ -1586,6 +1656,9 @@ document.addEventListener('keydown',e=>{
   if(mod&&k==='z'){e.preventDefault();e.shiftKey?redo():undo();return}
   if(mod&&k==='y'){e.preventDefault();redo();return}
   if(mod&&k==='d'){e.preventDefault();dupSel();return}
+  if(mod&&k==='c'&&mode==='draw'){e.preventDefault();copySel();return}
+  if(mod&&k==='v'&&mode==='draw'){e.preventDefault();pasteClip();return}
+  if(mod&&k==='a'&&mode==='draw'){e.preventDefault();setMulti(S.items.map(i=>i.id));renderAll();return}
   if(mod)return;
   if(mode!=='draw'){
     if(mode==='anim'&&k==='p'){animPaused=!animPaused;applySpeed();renderAnim();return}
@@ -1594,7 +1667,7 @@ document.addEventListener('keydown',e=>{
     return;
   }
   if(e.key===' '){spaceDown=true;stage.classList.add('panning');e.preventDefault();return}
-  if(e.key==='Escape'){if(drawingL){finishLine();return}if(drawingH){setTool('select');return}if(tool!=='select'){setTool('select');return}if(sel){sel=null;renderAll()}return}
+  if(e.key==='Escape'){if(drawingL){finishLine();return}if(drawingH){setTool('select');return}if(tool!=='select'){setTool('select');return}if(sel||msel.size){sel=null;msel.clear();renderAll()}return}
   if(e.key==='Enter'&&drawingL){finishLine();return}
   if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();delSel();return}
   if(k==='v')setTool('select'); else if(k==='l')setTool('line'); else if(k==='t')setTool('text'); else if(k==='h')setTool('hand');
@@ -1603,6 +1676,10 @@ document.addEventListener('keydown',e=>{
   else if(k==='r')rotSel(); else if(k==='f')flipSel();
   else if(k==='0')fit(); else if(k==='+'||k==='=')zoomAt(1.2); else if(k==='-')zoomAt(1/1.2);
   else if(/^[1-9]$/.test(k)&&S.fluids[+k-1])setFluid(S.fluids[+k-1].id);
+  else if(e.key.startsWith('Arrow')&&msel.size){
+    e.preventDefault();const d=GRID*(e.shiftKey?5:1),dx=e.key==='ArrowLeft'?-d:e.key==='ArrowRight'?d:0,dy=e.key==='ArrowUp'?-d:e.key==='ArrowDown'?d:0;
+    for(const i of msel){const it=get(i);if(it)moveItem(it,clone(it),dx,dy)}commit();renderCanvas();
+  }
   else if(e.key.startsWith('Arrow')&&sel){
     e.preventDefault();const it=get(sel),d=GRID*(e.shiftKey?5:1),dx=e.key==='ArrowLeft'?-d:e.key==='ArrowRight'?d:0,dy=e.key==='ArrowUp'?-d:e.key==='ArrowDown'?d:0;
     if(it.type==='line')it.pts=it.pts.map(q=>[q[0]+dx,q[1]+dy]);else if(it.type==='hose'){it.a=[it.a[0]+dx,it.a[1]+dy];it.b=[it.b[0]+dx,it.b[1]+dy]}else{it.x+=dx;it.y+=dy}commit();renderCanvas();
@@ -1633,6 +1710,7 @@ function buildSVG(pal){
 function saveFile(){download(new Blob([JSON.stringify({app:'bypass',v:1,doc:S},null,1)],{type:'application/json'}),slug()+'.bypass');toast('Archivo guardado')}
 $('#bSave').onclick=saveFile;
 $('#bSvg').onclick=()=>{download(new Blob([buildSVG(P).s],{type:'image/svg+xml'}),slug()+'.svg');toast('SVG exportado')};
+$('#bPdf').onclick=openPrint;
 $('#bPng').onclick=()=>{
   const {w,h,s}=buildSVG(P), img=new Image(), sc=2;
   img.onload=()=>{const c=document.createElement('canvas');c.width=w*sc;c.height=h*sc;const x=c.getContext('2d');x.drawImage(img,0,0,c.width,c.height);c.toBlob(bl=>{download(bl,slug()+'.png');toast('Imagen exportada')},'image/png')};
@@ -1656,6 +1734,7 @@ $$('.modal').forEach(m=>m.addEventListener('pointerdown',e=>{if(e.target===m)m.h
 function renderFlEdit(){
   $('#flEdit').innerHTML='<p class="note">Ajusta los colores a los de tu planta. Se guardan con el plano.</p>'+S.fluids.map((f,i)=>`<div class="frow" data-i="${i}">${f.color==='ink'?'<span class="inkc" title="Color de tinta: blanco de noche, negro en papel">TINTA</span>':`<input type="color" data-k="color" value="${f.color}">`}<input type="text" data-k="name" value="${esc(f.name)}">${f.id==='proc'?'<span></span>':'<button data-del title="Quitar">×</button>'}</div>`).join('');
 }
+$('#bNum').onclick=numberValves;
 $('#bFluids').onclick=()=>{renderFlEdit();$('#mFluids').hidden=false};
 $('#flEdit').addEventListener('input',e=>{const r=e.target.closest('.frow');if(!r)return;S.fluids[+r.dataset.i][e.target.dataset.k]=e.target.value;renderFluids();renderCanvas()});
 $('#flEdit').addEventListener('change',()=>commit());
@@ -1668,7 +1747,7 @@ $('#flAdd').onclick=()=>{S.fluids.push({id:uid(),name:'Nuevo fluido',color:'#A78
 const RED='#E5484D';
 let mode='draw', phase='a', popCtx=null, MSTATE={}, SHOWST=false, manView=null;
 let VCONV='rc'; try{VCONV=localStorage.getItem('bypass.vconv')||'rc'}catch(e){}
-const VC=()=>VCONV==='rc'?'#E5484D':'#22B35E', VO=()=>VCONV==='rc'?'#22B35E':'#E5484D';
+const VC=()=>VCONV==='bn'?'#1A1D21':VCONV==='rc'?'#E5484D':'#22B35E', VO=()=>VCONV==='bn'?'#FFFFFF':VCONV==='rc'?'#22B35E':'#E5484D', BN=()=>VCONV==='bn';
 const VTYPE={manual:'MANUAL',control:'AUTOMÁTICA',motor:'MOTORIZADA',tresvias:'3 VÍAS',venteo:'VENTEO',drenaje:'DRENAJE'};
 const ACTS={
   cerrar:{n:'Cerrar',inv:'abrir',st:'closed',k:RED},
@@ -1744,7 +1823,13 @@ function drawManOverlay(man,ms,pal){
     s+=b.vert?`<path d="M${b.x-13},${b.y} H${b.x+13}" stroke="${RED}" stroke-width="6"/><circle cx="${b.x+19}" cy="${b.y}" r="5.5" fill="${RED}"/>`
              :`<path d="M${b.x},${b.y-13} V${b.y+13}" stroke="${RED}" stroke-width="6"/><circle cx="${b.x}" cy="${b.y-19}" r="5.5" fill="${RED}"/>`;
   }
-  for(const id of ms.locks){const it=get(id);if(!it||it.type!=='sym')continue;const b=rbb(it);s+=lockG(it.x+b[0]-9,it.y+b[1]-9)}
+  for(const id of ms.locks){const it=get(id);if(!it||it.type!=='sym')continue;const b=rbb(it);s+=lockG(it.x+b[0]-25,it.y+b[1]-7)}
+  // letra A / C en cada válvula (se entiende aunque se imprima en blanco y negro)
+  for(const it of S.items){
+    if(it.type!=='sym'||!CLOSABLE.includes(it.kind))continue;
+    const cl=ms.st[it.id]==='closed',b=rbb(it),x=it.x+b[0]-8,y=it.y+b[1]-8,bn=BN();
+    s+=`<g pointer-events="none" transform="translate(${x} ${y})"><rect x="-7" y="-7" width="14" height="14" rx="3" fill="${bn?(cl?pal.ink:pal.paper):(cl?VC():VO())}" stroke="${bn?pal.ink:pal.paper}" stroke-width="1.5"/><text y="4" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="10.5" fill="${bn?(cl?pal.paper:pal.ink):'#fff'}">${cl?'C':'A'}</text></g>`;
+  }
   const cnt={};
   const seqIds=man?manSeq(man.m,man.phase).map(x=>x.id):[];
   if(man)man.m.steps.filter(x=>x.phase===man.phase).forEach((st,i)=>{
@@ -1810,22 +1895,28 @@ function valveSection(m){
   const seq=manSeq(m,phase),N=seq.length,k=manView==null?N:manView,ms=manState(m,phase,k).st;
   const vs=S.items.filter(i=>i.type==='sym'&&CLOSABLE.includes(i.kind)),cl=vs.filter(i=>ms[i.id]==='closed'),op=vs.filter(i=>ms[i.id]!=='closed');
   const name=it=>SYM[it.kind].fixed?SYM[it.kind].n:(it.tag||'Sin tag');
-  const chip=it=>{const ch=ms[it.id]!==(it.closed?'closed':'open');return`<button class="vchip" data-vid="${it.id}" title="Ver en el plano"><i style="background:${ms[it.id]==='closed'?VC():VO()}"></i><b>${esc(name(it))}</b><small>${VTYPE[it.kind]}</small>${ch?'<em>•</em>':''}</button>`};
+  const chip=it=>{const ch=ms[it.id]!==(it.closed?'closed':'open');return`<button class="vchip" data-vid="${it.id}" title="Ver en el plano"><i style="background:${BN()?(ms[it.id]==='closed'?P.ink:'transparent'):(ms[it.id]==='closed'?VC():VO())};${BN()?'border:1.5px solid '+P.ink:''}"></i><b>${esc(name(it))}</b><small>${VTYPE[it.kind]}</small>${ch?'<em>•</em>':''}</button>`};
   const st=k>0?seq[k-1]:null,na=m.steps.filter(x=>x.phase==='a').length;
   const lbl=k===0?'Estado inicial del plano':`Tras ${st.phase==='a'?'el paso '+k:'normalizar '+(k-na)}: ${esc(stepText(st))}${targetLabel(st)?' '+esc(targetLabel(st)):''}`;
   return`<section class="sec mf"><div class="sh"><span class="n">03</span><h3>Estado de válvulas</h3></div>
   <div class="stepper"><button data-mact="v0" title="Estado inicial">⏮</button><button data-mact="vprev" title="Paso anterior">◀</button><span>${lbl}<small>${k} / ${N}${manView==null?' · final':''}</small></span><button data-mact="vnext" title="Paso siguiente">▶</button><button data-mact="vend" title="Estado final">⏭</button></div>
-  <div class="astat" style="margin-top:8px"><div><b style="color:${VO()}">${op.length}</b><span>Abiertas</span></div><div><b style="color:${VC()}">${cl.length}</b><span>Cerradas</span></div></div>
+  <div class="astat" style="margin-top:8px"><div><b style="color:${BN()?P.ink:VO()}">${op.length}</b><span>Abiertas</span></div><div><b style="color:${BN()?P.ink:VC()}">${cl.length}</b><span>Cerradas</span></div></div>
   <details class="vlist"${vlistOpen?' open':''}><summary>Ver lista de válvulas</summary>
   <label>Cerradas · ${cl.length}</label><div class="vchips">${cl.map(chip).join('')||'<span class="anote">Ninguna</span>'}</div>
   <label>Abiertas · ${op.length}</label><div class="vchips">${op.map(chip).join('')||'<span class="anote">Ninguna</span>'}</div>
   <p class="anote" style="margin-top:8px"><b style="color:var(--hz)">•</b> cambia en esta maniobra</p></details>
-  <label>Colores</label>${seg('vconv',[['rc','Rojo = cerrada'],['vc','Verde = cerrada']],VCONV).replace(/data-act=/g,'data-mact=')}
+  <label>Colores</label>${seg('vconv',[['rc','Rojo cerrada'],['vc','Verde cerrada'],['bn','B/N']],VCONV).replace(/data-act=/g,'data-mact=')}
   </section>`;
 }
-function bowIcon(c){return`<svg width="26" height="14" viewBox="0 0 26 14"><path d="M1,1 L13,7 L1,13 Z M25,1 L13,7 L25,13 Z" fill="${c}" stroke="${c}" stroke-linejoin="round"/></svg>`}
+function bowIcon(c,st){return`<svg width="26" height="14" viewBox="0 0 26 14"><path d="M1,1 L13,7 L1,13 Z M25,1 L13,7 L25,13 Z" fill="${c}" stroke="${st||c}" stroke-width="1.5" stroke-linejoin="round"/></svg>`}
+function letter(t,bg,fg,bd){return`<svg width="15" height="15" viewBox="0 0 15 15"><rect x=".75" y=".75" width="13.5" height="13.5" rx="3" fill="${bg}" stroke="${bd||bg}" stroke-width="1.5"/><text x="7.5" y="11" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="10" fill="${fg}">${t}</text></svg>`}
+function valveKeys(ink,paper){
+  const bn=BN();
+  return[`${bowIcon(bn?paper:VO(),bn?ink:null)}${letter('A',bn?paper:VO(),bn?ink:'#fff',bn?ink:null)}Abierta`,`${bowIcon(bn?ink:VC())}${letter('C',bn?ink:VC(),bn?paper:'#fff')}Cerrada`];
+}
 function renderMan(){
-  $('#mlegend').innerHTML=`<span>${bowIcon(VO())}Abierta</span><span>${bowIcon(VC())}Cerrada</span><span><svg width="14" height="18" viewBox="-7 -10 14 20">${lockG(0,0)}</svg>Consignada</span><span><svg width="12" height="18"><path d="M6,5 V18" stroke="${RED}" stroke-width="4"/><circle cx="6" cy="5" r="4" fill="${RED}"/></svg>Ciego</span>`;
+  const vk=valveKeys(P.ink,P.paper);
+  $('#mlegend').innerHTML=`<span>${vk[0]}</span><span>${vk[1]}</span><span><svg width="14" height="18" viewBox="-7 -10 14 20">${lockG(0,0)}</svg>Consignada</span><span><svg width="12" height="18"><path d="M6,5 V18" stroke="${RED}" stroke-width="4"/><circle cx="6" cy="5" r="4" fill="${RED}"/></svg>Ciego</span>`;
   const box=$('#asideMan');if(mode!=='man'){box.innerHTML='';return}
   const m=M();
   if(!m){box.innerHTML=`<section class="sec"><div class="sh"><span class="n">01</span><h3>Maniobra</h3></div><div class="empty">Prepara aquí el aislamiento de un equipo para un trabajo: qué válvulas cerrar y consignar, dónde poner ciegos, qué drenar y purgar. Después sacas la hoja de maniobra para imprimir y firmar.</div><div class="mrow"><button class="btn pri wide" data-mact="new">+ Nueva maniobra</button><button class="btn sm wide" data-mact="sample">Ver ejemplo (carga el plano de muestra)</button></div></section>`;return}
@@ -1841,7 +1932,7 @@ function renderMan(){
   <div class="mrow"><button class="btn sm" data-mact="note">+ Nota</button>${phase==='v'?`<button class="btn sm" data-mact="gen">↺ Generar desde el aislamiento</button>`:''}</div></section>
   ${valveSection(m)}
   <section class="sec"><div class="sh"><span class="n">04</span><h3>Hoja</h3></div><button class="btn pri wide" data-mact="sheet">Ver hoja de maniobra</button><div class="mrow"><button class="btn sm wide" data-mact="delman">Borrar esta maniobra</button></div></section>
-  <div class="foot">Toca el <b>número</b> de un paso para marcarlo como hecho.<br>Toca un número del plano para ir a su paso.<br><b style="color:${VC()}">■</b> cerrada · <b style="color:${VO()}">■</b> abierta · <b>candado</b> = consignado</div>`;
+  <div class="foot">Toca el <b>número</b> de un paso para marcarlo como hecho.<br>Toca un número del plano para ir a su paso.<br><b style="color:${BN()?P.ink:VC()}">■</b> cerrada · <b style="color:${BN()?P.ink:VO()}">${BN()?'□':'■'}</b> abierta · <b>candado</b> = consignado</div>`;
 }
 $('#asideMan').addEventListener('click',e=>{
   const vc=e.target.closest('[data-vid]');
@@ -1880,7 +1971,7 @@ $('#asideMan').addEventListener('change',()=>commit());
 $('#asideMan').addEventListener('toggle',e=>{if(e.target.matches('details.vlist'))vlistOpen=e.target.open},true);
 function setMode(md){
   if(drawingL)finishLine(); if(editing)finishEdit();
-  mode=md;sel=null;tool='select';stamp=null;closePop();
+  mode=md;sel=null;msel.clear();tool='select';stamp=null;closePop();
   $('.app').classList.toggle('man',md==='man');
   $('.app').classList.toggle('anim',md==='anim');
   stage.classList.toggle('anim',md==='anim');
@@ -1903,13 +1994,37 @@ function openSheet(){
   <table class="meta"><tr><td><small>PLANO / UNIDAD</small><b>${esc(S.name)}</b></td><td><small>PERMISO DE TRABAJO Nº</small><b>${esc(m.permit)}</b></td><td><small>FECHA</small><b>${new Date().toLocaleDateString('es-ES')}</b></td></tr>
   <tr><td><small>PREPARADO POR</small><b>${esc(m.by)}</b></td><td><small>REVISADO · JEFE DE TURNO</small></td><td><small>ENTREGADO A MANTENIMIENTO · HORA</small></td></tr></table>
   <div class="plan">${plan}</div>
-  <div class="keys"><span><span class="bd" style="width:16px;height:16px;font-size:9px">1</span>Nº de paso de aislamiento</span><span><svg width="26" height="14"><path d="M1,1 L13,7 L1,13 Z M25,1 L13,7 L25,13 Z" fill="${VC()}" stroke="${VC()}"/></svg>Válvula cerrada</span><span><svg width="26" height="14"><path d="M1,1 L13,7 L1,13 Z M25,1 L13,7 L25,13 Z" fill="${VO()}" stroke="${VO()}"/></svg>Válvula abierta</span><span><svg width="16" height="18"><path d="M8,4 V18" stroke="${RED}" stroke-width="5"/><circle cx="8" cy="4" r="4" fill="${RED}"/></svg>Ciego instalado</span><span><svg width="16" height="20" viewBox="-8 -10 16 20">${lockG(0,0)}</svg>Consignado (candado + etiqueta)</span></div>
+  <div class="keys"><span><span class="bd" style="width:16px;height:16px;font-size:9px">1</span>Nº de paso de aislamiento</span>${valveKeys('#111','#fff').map(k=>`<span>${k.replace('Abierta','Válvula abierta').replace('Cerrada','Válvula cerrada')}</span>`).join('')}<span><svg width="16" height="18"><path d="M8,4 V18" stroke="${RED}" stroke-width="5"/><circle cx="8" cy="4" r="4" fill="${RED}"/></svg>Ciego instalado</span><span><svg width="16" height="20" viewBox="-8 -10 16 20">${lockG(0,0)}</svg>Consignado (candado + etiqueta)</span></div>
   <h2><span class="bd">1</span>AISLAMIENTO</h2><table class="steps-t">${head}<tbody>${rows('a')}</tbody></table>
   <h2><span class="bd v">2</span>VUELTA A SERVICIO</h2><table class="steps-t">${head}<tbody>${rows('v')}</tbody></table>
   <div class="sign"><div>PREPARADO</div><div>REVISADO</div><div>APROBADO</div></div>
   <div class="legal"><span>Esquema de ayuda a la operación. No sustituye al P&amp;ID ni a los procedimientos oficiales de la planta.</span><span>Hecho con BYPASS</span></div>`;
+  $('#shTitle').innerHTML='Hoja de maniobra<small>Imprime o guarda como PDF desde el diálogo de impresión</small>';$('#shOpts').innerHTML='';
+  $('#paper').className='paper';$('#pgsize').textContent='@media print{@page{size:A4 portrait;margin:11mm}}';
   $('#sheet').classList.add('show');renderCanvas();
 }
+/* ════════ Exportar a PDF (vía impresión: «Guardar como PDF») ════════ */
+let pdfSize='A3',pdfBN=false;
+function openPrint(){
+  const man=mode==='man'?manCtx():null,m=man&&man.m,savedConv=VCONV;
+  const savedF=S.fluids.map(f=>f.color),savedH=Object.values(HOSES).map(h=>h.c);
+  const dark=c=>{if(!/^#[0-9a-f]{6}$/i.test(c))return c;const n=parseInt(c.slice(1),16),l=(.3*(n>>16)+.59*(n>>8&255)+.11*(n&255))/255,v=Math.round(30+l*70);return`rgb(${v},${v},${v})`};
+  if(pdfBN){VCONV='bn';S.fluids.forEach(f=>{if(f.color!=='ink')f.color=dark(f.color)});Object.values(HOSES).forEach(h=>h.c=dark(h.c))}
+  const pal=Object.assign({},THEMES.papel,{paper:'#FFFFFF'}),b=bboxAll()||[0,0,400,300],pad=24,w=b[2]-b[0]+2*pad,h=b[3]-b[1]+2*pad;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${b[0]-pad} ${b[1]-pad} ${w} ${h}" preserveAspectRatio="xMidYMid meet"><rect x="${b[0]-pad}" y="${b[1]-pad}" width="${w}" height="${h}" fill="#fff"/>${renderItems(pal,false,man)}</svg>`;
+  VCONV=savedConv;S.fluids.forEach((f,i)=>f.color=savedF[i]);Object.values(HOSES).forEach((h,i)=>h.c=savedH[i]);renderCanvas();
+  const land=w>=h*0.9,dims={A4:[297,210],A3:[420,297]}[pdfSize],PW=land?dims[0]:dims[1],PH=land?dims[1]:dims[0],cw=PW-17,ch=PH-19;
+  const td=(k,v)=>`<td><small>${k}</small><b>${esc(v||'')}</b></td>`;
+  $('#paper').className='paper pdfmode';
+  $('#paper').innerHTML=`<div class="pdfpage" style="width:${cw}mm;height:${ch}mm;--pz:${pdfSize==='A3'?.6:.85}"><div class="pdfplan${pdfBN?' bn':''}">${svg}</div>
+  <table class="cj"><tr>${td('PLANO / UNIDAD',S.name)}${m?td('MANIOBRA',m.title)+td('PERMISO Nº',m.permit):''}${td('FECHA',new Date().toLocaleDateString('es-ES'))}${td('REVISIÓN',S.rev||'0')}${td('FORMATO',pdfSize+(land?' horizontal':' vertical'))}<td class="lg"><b>BYPASS</b><small>Esquema de ayuda a la operación · no sustituye al P&amp;ID</small></td></tr></table></div>`;
+  $('#shTitle').innerHTML=`${m?'Plano de maniobra':'Plano'} para PDF<small>Pulsa «Imprimir / PDF» y elige «Guardar como PDF»</small>`;
+  const sb=(k,v,l,on)=>`<button class="btn ${on?'pri':''}" data-pdf="${k}" data-v="${v}" style="height:30px">${l}</button>`;
+  $('#shOpts').innerHTML=sb('size','A4','A4',pdfSize==='A4')+sb('size','A3','A3',pdfSize==='A3')+'<span style="width:10px"></span>'+sb('bn','0','Color',!pdfBN)+sb('bn','1','B/N',pdfBN);
+  $('#pgsize').textContent=`@media print{@page{size:${pdfSize} ${land?'landscape':'portrait'};margin:8mm}}`;
+  $('#sheet').classList.add('show');
+}
+$('#shOpts').addEventListener('click',e=>{const b=e.target.closest('[data-pdf]');if(!b)return;if(b.dataset.pdf==='size')pdfSize=b.dataset.v;else pdfBN=b.dataset.v==='1';openPrint()});
 $('#shClose').onclick=()=>$('#sheet').classList.remove('show');
 $('#shPrint').onclick=()=>{try{window.print()}catch(e){toast('Abre el archivo en tu navegador para imprimir')}};
 

@@ -73,6 +73,11 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
   - El nivel de los depósitos usa `vesselFlows()` y `hasExit()`: solo cuenta la salida si el flujo llega a algún sitio, no si acaba en una válvula cerrada.
 - **Retenciones con sentido**: el símbolo lleva una flecha. El sentido permitido es el +x local, con giro y espejo aplicados (`chkDir()`). Al soltarla sobre una línea se orienta según el sentido de dibujo (`tangentAt()`); con `F` o el inspector se invierte. En `flowNet()` la línea se parte en la retención y los dos lados se unen con un enlace de un solo sentido (`linkDir`). Si las líneas llegan a sus bocas, el enlace también es de un solo sentido.
 - **Flechitas de sentido**: `smallArrows()` pone flechas pequeñas cada ~120 unidades, sin tapar símbolos (`blockedAt()`). `buildArrows()` las orienta con el flujo real (`flowRun`). En los tramos sin flujo usa el sentido de diseño (`designRun()`: todo abierto y las PSV disparadas) y, si no, el de dibujo. Se desactivan por línea con «Sentido de flujo: Sin flecha».
+- **Selección múltiple** (`msel`): con el ratón, arrastrar en vacío hace un rectángulo de selección; Mayús+clic añade o quita; Ctrl+A selecciona todo. Se mueve en grupo (`mmove`); Ctrl+D duplica; Supr borra; las flechas desplazan. Ctrl+C / Ctrl+V usan `localStorage` (`bypass.clip`), así que sirven entre planos. En táctil, arrastrar en vacío sigue moviendo el plano.
+- **Símbolos nuevos**: eyector (`J`), turbina (`TB`), filtro (`F`) y filtro en Y (en línea, no se cierra).
+- **Numerar válvulas** (botón «Numerar» en 04 Válvulas): pone V-01, V-02… a las válvulas y retenciones sin tag, en orden de lectura.
+- **Letras A/C y blanco y negro**: en maniobra y en la hoja, cada válvula lleva una placa «A» o «C». El convenio `bn` (B/N) pinta las cerradas rellenas de tinta y las abiertas huecas.
+- **PDF** (botón «PDF»): `openPrint()` monta una página A4 o A3, horizontal o vertical según la forma del plano, con el plano y un cajetín (plano, maniobra y permiso si se está en modo maniobra, fecha, revisión y formato). El tamaño de página se fija con `@page` (`#pgsize`) y se guarda con «Imprimir → Guardar como PDF». En B/N los fluidos pasan a grises oscuros sobre fondo blanco.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
 ## Móvil y tablet
@@ -82,7 +87,5 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
 
 ## Pendiente o ideas
 
-- Selección múltiple.
-- Exportar a PDF en A3.
 - Más símbolos.
 - Gestos táctiles con dos dedos para el zoom.
