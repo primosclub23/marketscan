@@ -33,6 +33,7 @@ El editor: HTML, CSS y JS sin dependencias ni paso de compilación. Las fuentes 
   - Una válvula colocada sobre un tramo vertical gira sola y toma el color del fluido de esa línea.
   - Con una línea seleccionada: los cuadrados mueven un vértice y los rombos mueven un tramo entero. Si el tramo es el primero o el último, se crea un codo nuevo.
   - Borrar un codo: clic en su cuadrado (queda marcado, `selV`) y Supr, doble clic sobre él, o «Borrar este codo» en el panel (`delVertex()`). Si al quitarlo quedaría un tramo en diagonal, se quita el tramo corto del extremo. «Enderezar» (`straighten()`) quita los tramitos de menos de 35 en los extremos.
+  - Tramos: todos (también los diagonales) tienen su rombo. Clic en el rombo, o clic sobre una línea ya seleccionada, marca el tramo (`selSeg`). Supr lo borra (`delSegment()`): en un extremo acorta la línea y en medio la parte en dos. «Poner en ángulo recto» (`squareSeg()`) cambia un diagonal por un codo recto, y «Enderezar» también pone rectos los diagonales.
   - En el lienzo no se selecciona texto del navegador (`user-select:none` y `preventDefault` al pulsar con el ratón).
 - **Saltos en los cruces**: `hopPath()` hace que los tramos horizontales salten en arco sobre los verticales de otras líneas. Los cruces se calculan en `renderItems` (`VSEGS`).
 - **Válvula abierta / cerrada**: `it.closed` rellena el cuerpo de la válvula (convenio de válvula cerrada). Solo en manual, automática, motorizada y tres vías. Tecla `C` o el inspector.

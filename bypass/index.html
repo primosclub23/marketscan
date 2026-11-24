@@ -1781,7 +1781,8 @@ function renderOver(){
     if(it.type==='sym'){const b=rbb(it);s+=`<rect x="${it.x+b[0]-6}" y="${it.y+b[1]-6}" width="${b[2]-b[0]+12}" height="${b[3]-b[1]+12}" fill="none" stroke="${sc}" stroke-width="${sw}" stroke-dasharray="${5/k} ${4/k}" pointer-events="none"/>`}
     else if(it.type==='line'){
       const p=it.pts, r=4.5/k;
-      for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1];if(a[0]!==b[0]&&a[1]!==b[1])continue;const m=[(a[0]+b[0])/2,(a[1]+b[1])/2];s+=`<path data-h="s:${i}" d="M${m[0]-r*1.3},${m[1]} L${m[0]},${m[1]-r*1.3} L${m[0]+r*1.3},${m[1]} L${m[0]},${m[1]+r*1.3} Z" fill="${P.paper}" stroke="${sc}" stroke-width="${sw}"/>`}
+      if(selSeg!=null&&p[selSeg+1])s+=`<path d="M${p[selSeg][0]},${p[selSeg][1]} L${p[selSeg+1][0]},${p[selSeg+1][1]}" stroke="${sc}" stroke-width="${10/k}" stroke-opacity=".45" stroke-linecap="round" pointer-events="none"/>`;
+      for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1],on=i===selSeg,q=on?1.7:1.3;const m=[(a[0]+b[0])/2,(a[1]+b[1])/2];s+=`<path data-h="s:${i}" d="M${m[0]-r*q},${m[1]} L${m[0]},${m[1]-r*q} L${m[0]+r*q},${m[1]} L${m[0]},${m[1]+r*q} Z" fill="${on?sc:P.paper}" stroke="${sc}" stroke-width="${sw}"><title>Clic: seleccionar este tramo · Arrastrar: moverlo</title></path>`}
       p.forEach((q,i)=>{const on=i===selV,rr=on?r*1.5:r;if(on)s+=`<circle cx="${q[0]}" cy="${q[1]}" r="${rr*1.9}" fill="none" stroke="${sc}" stroke-width="${sw}" pointer-events="none"/>`;s+=`<rect data-h="v:${i}" x="${q[0]-rr}" y="${q[1]-rr}" width="${2*rr}" height="${2*rr}" fill="${on?'#fff':sc}" stroke="${on?sc:P.paper}" stroke-width="${sw*(on?1.4:.8)}"><title>Arrastra para mover · Doble clic o Supr para borrar este punto</title></rect>`});
     } else if(it.type==='hose'){
       const r=5.5/k;s+=`<path d="M${it.a[0]},${it.a[1]} Q${hoseCtrl(it.a,it.b).join(',')} ${it.b[0]},${it.b[1]}" fill="none" stroke="${sc}" stroke-width="${sw}" stroke-dasharray="${5/k} ${4/k}" pointer-events="none"/>`;
@@ -1825,7 +1826,7 @@ function renderOver(){
   }
   O.innerHTML=s;
 }
-function renderAll(){if(!sel||!get(sel)||get(sel).type!=='line')selV=null;renderCanvas();renderInspector();renderFluids();renderTools();renderMan();renderAnim();updUndo()}
+function renderAll(){if(selFor!==sel||!sel||!get(sel)||get(sel).type!=='line'){selV=null;selSeg=null;selFor=sel}renderCanvas();renderInspector();renderFluids();renderTools();renderMan();renderAnim();updUndo()}
 
 /* ════════ Paneles ════════ */
 const TOOLS=[
@@ -1895,7 +1896,8 @@ function renderInspector(){
     body+=`<div><label>Grosor</label>${seg('weight',[['n','Normal'],['b','Principal']],it.weight||'n')}</div>`;
     body+=`<div><label>Sentido de flujo</label>${seg('arrow',[[1,'Con flecha'],[0,'Sin flecha']],it.arrow?1:0)}</div>`;
     body+=`<div class="row"><button class="btn" data-act="rev">⇄ Invertir</button><button class="btn" data-act="straight" title="Quita los tramitos cortos de los extremos">⟶ Enderezar</button></div>`;
-    body+=selV!=null?`<div class="row"><button class="btn danger" data-act="delv">Borrar este codo</button></div>`:`<p style="font-size:12px;color:var(--tx3)">Para borrar un codo: clic en su cuadradito y <b>Supr</b>, o doble clic sobre él.</p>`;
+    const sgD=selSeg!=null&&it.pts[selSeg+1]&&it.pts[selSeg][0]!==it.pts[selSeg+1][0]&&it.pts[selSeg][1]!==it.pts[selSeg+1][1];
+    body+=selV!=null?`<div class="row"><button class="btn danger" data-act="delv">Borrar este codo</button></div>`:selSeg!=null?`<div class="row">${sgD?'<button class="btn" data-act="sqseg">∟ Poner en ángulo recto</button>':''}<button class="btn danger" data-act="delseg">Borrar este tramo</button></div>`:`<p style="font-size:12px;color:var(--tx3)">Clic en un <b>cuadradito</b> (codo) o en un <b>rombo ◆</b> (tramo) para seleccionarlo, y <b>Supr</b> para borrarlo.</p>`;
   } else if(it.type==='text'){
     title='Texto'; code='TXT';
     body+=`<div><label>Texto</label><input type="text" data-f="text" value="${esc(it.text)}"></div>`;
@@ -2140,7 +2142,27 @@ function pasteItems(list,off){
 function copySel(){const ids=selIds();if(!ids.length)return;const list=ids.map(get).filter(Boolean);try{localStorage.setItem('bypass.clip',JSON.stringify(list))}catch(e){}pasteN=0;toast(list.length+(list.length===1?' elemento copiado':' elementos copiados'))}
 function pasteClip(){let list=null;try{list=JSON.parse(localStorage.getItem('bypass.clip')||'null')}catch(e){}if(!list||!list.length){toast('No hay nada copiado');return}pasteN++;pasteItems(list,30*pasteN)}
 /* Borrar un punto (codo) de una línea sin dejar tramos en diagonal */
-let selV=null;
+let selV=null,selSeg=null,selFor=null;
+function nearestSeg(pts,q){let bi=0,bd=1e9;for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],l2=(b[0]-a[0])**2+(b[1]-a[1])**2||1,t=Math.max(0,Math.min(1,((q[0]-a[0])*(b[0]-a[0])+(q[1]-a[1])*(b[1]-a[1]))/l2)),d=Math.hypot(a[0]+t*(b[0]-a[0])-q[0],a[1]+t*(b[1]-a[1])-q[1]);if(d<bd){bd=d;bi=i}}return bi}
+/* Borrar un tramo: en un extremo acorta la línea; en medio, la parte en dos */
+function delSegment(it,i){
+  const p=clone(it.pts),n=p.length;
+  if(n<=2){selSeg=null;delSel();toast('Línea borrada');return}
+  if(i===0)p.shift();
+  else if(i===n-2)p.pop();
+  else{
+    const b=clone(it);b.id=uid();b.pts=p.slice(i+1);it.pts=p.slice(0,i+1);
+    if(it.pts.length<2)S.items=S.items.filter(x=>x!==it);S.items.push(b);
+    selSeg=null;selV=null;commit();renderAll();toast('Tramo borrado: la línea queda en dos partes');return;
+  }
+  it.pts=simplify(p);selSeg=null;selV=null;commit();renderAll();toast('Tramo borrado');
+}
+/* Convertir un tramo diagonal en un codo recto */
+function squareSeg(it,i){
+  const p=clone(it.pts),a=p[i],b=p[i+1];if(!a||!b||a[0]===b[0]||a[1]===b[1])return;
+  const prevH=i>0&&p[i-1][1]===a[1];p.splice(i+1,0,prevH?[a[0],b[1]]:[b[0],a[1]]);
+  it.pts=simplify(p);selSeg=null;commit();renderAll();toast('Tramo en ángulo recto');
+}
 function delVertex(it,i){
   const p=clone(it.pts),n=p.length;
   if(n<=2){selV=null;delSel();toast('Línea borrada');return}
@@ -2159,9 +2181,10 @@ function delVertex(it,i){
 }
 function straighten(it){
   let p=simplify(clone(it.pts)),k=0;
+  for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1];if(a[0]!==b[0]&&a[1]!==b[1]){const prevH=i>0&&p[i-1][1]===a[1];p.splice(i+1,0,prevH?[a[0],b[1]]:[b[0],a[1]]);k++;i++}}
   while(p.length>2&&segLen(p[0],p[1])<35){p.shift();k++}
   while(p.length>2&&segLen(p[p.length-2],p[p.length-1])<35){p.pop();k++}
-  it.pts=simplify(p);selV=null;commit();renderAll();toast(k?'Línea enderezada':'No había tramos cortos que quitar');
+  it.pts=simplify(p);selV=null;selSeg=null;commit();renderAll();toast(k?'Línea enderezada':'La línea ya estaba recta');
 }
 function delSel(){const ids=new Set(selIds());if(!ids.size)return;S.items=S.items.filter(i=>!ids.has(i.id));sel=null;msel.clear();commit();renderAll()}
 function dupSel(){
@@ -2295,7 +2318,9 @@ svg.addEventListener('pointerdown',e=>{
   if(h&&sel){
     const it=get(sel),[kind,si]=h.dataset.h.split(':');let i=+si;
     if(kind==='he'){drag={t:'hend',end:i?'b':'a',moved:false};return}
-    if(kind==='v'){selV=i;renderOver();renderInspector();drag={t:'vtx',i,orig:clone(it.pts)};return}
+    if(kind==='v'){selV=i;selSeg=null;selFor=sel;renderOver();renderInspector();drag={t:'vtx',i,orig:clone(it.pts)};return}
+    selSeg=i;selV=null;selFor=sel;renderOver();renderInspector();
+    if(it.pts[i][0]!==it.pts[i+1][0]&&it.pts[i][1]!==it.pts[i+1][1])return; // tramo diagonal: solo se selecciona
     let pts=clone(it.pts);const a=pts[i],b=pts[i+1],horiz=a[1]===b[1];
     if(i===0){pts.unshift([pts[0][0],pts[0][1]]);i=1}
     if(i+1===pts.length-1)pts.push([pts[pts.length-1][0],pts[pts.length-1][1]]);
@@ -2305,9 +2330,10 @@ svg.addEventListener('pointerdown',e=>{
   if(id&&msel.has(id)){const origs=new Map([...msel].map(i=>[i,clone(get(i))]));drag={t:'mmove',p0:p,origs,moved:false};return}
   if(id){
     if(msel.size){msel.clear()}
+    const wasSel=sel===id;
     if(sel!==id){sel=id;renderAll()}
     const it=get(id),glue=it.type==='sym'&&!isInline(it.kind)?findGlue(it):[];
-    drag={t:'move',p0:p,orig:clone(it),moved:false,glue,keys:new Set(glue.flatMap(gl=>gl.type==='line'?gl.idxs.map(i=>gl.id+':'+i):gl.ends.map(k=>gl.id+':'+k)))};return;
+    drag={t:'move',wasSel,p0:p,orig:clone(it),moved:false,glue,keys:new Set(glue.flatMap(gl=>gl.type==='line'?gl.idxs.map(i=>gl.id+':'+i):gl.ends.map(k=>gl.id+':'+k)))};return;
   }
   if(e.pointerType==='mouse'&&!spaceDown){if(!e.shiftKey&&(sel||msel.size)){sel=null;msel.clear();renderAll()}drag={t:'box',p0:p,p1:p,add:e.shiftKey};return}
   if(sel||msel.size){sel=null;msel.clear();renderAll()}
@@ -2368,7 +2394,8 @@ function endDrag(){
     setMulti(d.add?[...new Set([...selIds(),...inside])]:inside);renderAll();return;
   }
   if(d.t==='mmove'){if(d.moved){commit();renderAll()}return}
-  if(d.t==='seg'||d.t==='vtx'){const it=get(sel);if(it)it.pts=simplify(it.pts)}
+  if(d.t==='seg'||d.t==='vtx'){const it=get(sel);if(it)it.pts=simplify(it.pts);if(d.moved){selSeg=null}}
+  if(d.t==='move'&&!d.moved&&d.wasSel){const it=get(sel);if(it&&it.type==='line'){selSeg=nearestSeg(it.pts,d.p0);selV=null;selFor=sel;renderOver();renderInspector();return}}
   if(d.t==='move'&&d.glue)for(const gl of d.glue)if(gl.type==='line'){const L=get(gl.id);if(L)L.pts=simplify(L.pts)}
   if(snapT&&d.moved)snapFx(snapT.p,snapT);
   snapT=null;
@@ -2412,6 +2439,8 @@ $('#insp').addEventListener('click',e=>{
   else if(a==='rev')it.pts.reverse();
   else if(a==='straight')return straighten(it);
   else if(a==='delv'){if(selV!=null)delVertex(it,selV);return}
+  else if(a==='delseg'){if(selSeg!=null)delSegment(it,selSeg);return}
+  else if(a==='sqseg'){if(selSeg!=null)squareSeg(it,selSeg);return}
   commit(); renderAll();
 });
 $('#insp').addEventListener('input',e=>{
@@ -2446,7 +2475,7 @@ document.addEventListener('keydown',e=>{
   if(e.key===' '){spaceDown=true;stage.classList.add('panning');e.preventDefault();return}
   if(e.key==='Escape'){if(drawingL){finishLine();return}if(drawingH){setTool('select');return}if(tool!=='select'){setTool('select');return}if(sel||msel.size){sel=null;msel.clear();renderAll()}return}
   if(e.key==='Enter'&&drawingL){finishLine();return}
-  if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();const L=sel&&get(sel);if(L&&L.type==='line'&&selV!=null){delVertex(L,selV);return}delSel();return}
+  if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();const L=sel&&get(sel);if(L&&L.type==='line'&&selV!=null){delVertex(L,selV);return}if(L&&L.type==='line'&&selSeg!=null){delSegment(L,selSeg);return}delSel();return}
   if(k==='v')setTool('select'); else if(k==='l')setTool('line'); else if(k==='t')setTool('text'); else if(k==='h')setTool('hand');
   else if(k==='c'){const it=sel&&get(sel);if(it&&it.type==='sym'&&CLOSABLE.includes(it.kind)){it.closed=!it.closed;commit();renderAll()}}
   else if(k==='a')toggleFlow();
