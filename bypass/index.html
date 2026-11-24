@@ -689,7 +689,7 @@ function subPath(p,d0,d1){
 const pkey=p=>Math.round(p[0]*2)/2+','+Math.round(p[1]*2)/2;
 function flowNet(mst){
   const lines=S.items.filter(i=>i.type==='line'),syms=S.items.filter(i=>i.type==='sym'),adj=new Map(),dead=new Set();
-  const edges=[];
+  const edges=[],chks=[];
   const link=(u,v,e)=>{e.u=u;e.v=v;edges.push(e);for(const[a,b]of[[u,v],[v,u]]){if(!adj.has(a))adj.set(a,[]);adj.get(a).push({to:b,e})}};
   const linkDir=(u,v,e)=>{e.u=u;e.v=v;if(!adj.has(u))adj.set(u,[]);adj.get(u).push({to:v,e})}; // solo de u a v (retención)
   const isShut=it=>{const k=it.kind,ms=MSTATE[it.id];if(k==='ciego')return ms==='closed';if(k==='psv')return ms!=='open';return CLOSABLE.includes(k)&&(ms?ms==='closed':!!it.closed)};
@@ -711,7 +711,7 @@ function flowNet(mst){
     }
     // retención: solo deja pasar en el sentido de su flecha
     for(const n of nd)if(n.chk){const t=tangentAt(L.pts,[n.chk.x,n.chk.y]),v=chkDir(n.chk),up=t[0]*v[0]+t[1]*v[1]>0;
-      linkDir(`C:${n.chk.id}:${up?'lo':'hi'}`,`C:${n.chk.id}:${up?'hi':'lo'}`,{kind:'chk',it:n.chk,len:0})}
+      linkDir(`C:${n.chk.id}:${up?'lo':'hi'}`,`C:${n.chk.id}:${up?'hi':'lo'}`,{kind:'chk',it:n.chk,len:0});chks.push({it:n.chk,up:`C:${n.chk.id}:${up?'lo':'hi'}`,down:`C:${n.chk.id}:${up?'hi':'lo'}`})}
   }
   for(const it of syms){
     if(it.kind==='ciego'||it.kind==='instrumento')continue;
@@ -719,11 +719,11 @@ function flowNet(mst){
     if(PURGA.includes(it.kind)){if(!isShut(it)&&ps[0])link(pkey([it.x,it.y]),pkey(ps[0].p),{kind:'purga',it,pts:[[it.x,it.y],ps[0].p],len:0});continue}
     if(isShut(it)){for(const pt of ps)dead.add(pkey(pt.p));continue}
     if(it.kind==='retencion'&&ps.length===2){const v=chkDir(it),a=ps[0],b=ps[1],aUp=(b.p[0]-a.p[0])*v[0]+(b.p[1]-a.p[1])*v[1]>0,u=aUp?a:b,w=aUp?b:a;
-      linkDir(pkey(u.p),'E:'+it.id,{kind:'hub',it,len:0});linkDir('E:'+it.id,pkey(w.p),{kind:'hub',it,len:0});continue}
+      linkDir(pkey(u.p),'E:'+it.id,{kind:'hub',it,len:0});linkDir('E:'+it.id,pkey(w.p),{kind:'hub',it,len:0});chks.push({it,up:pkey(u.p),down:pkey(w.p)});continue}
     for(const pt of ps)link('E:'+it.id,pkey(pt.p),{kind:'hub',it,len:0});
   }
   for(const h of S.items)if(h.type==='hose'&&MSTATE[h.id]!=='off')link(pkey(h.a),pkey(h.b),{kind:'hose',h,len:0});
-  return{adj,lines,dead,edges};
+  return{adj,lines,dead,edges,chks};
 }
 function chkDir(it){const f=it.flip?-1:1,r=(((it.rot||0)%360)+360)%360;return r===90?[0,f]:r===180?[-f,0]:r===270?[0,-f]:[f,0]}
 function tangentAt(p,q){for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1],l=segLen(a,b);if(l&&Math.abs(segLen(a,q)+segLen(q,b)-l)<.6)return[(b[0]-a[0])/l,(b[1]-a[1])/l]}return[1,0]}
@@ -750,18 +750,18 @@ const srcKey=s=>s.type==='sym'?'E:'+s.id:pkey(s.p);
 function flowSources(){return S.flowSrc||autoSources()}
 function flowRun(mst){
   const net=flowNet(mst),srcs=flowSources(),start=srcs.map(srcKey).filter(k=>net.adj.has(k));
-  const seen=new Set(start),q=[...start],oriented=[],used=new Set(),outMap=new Map();
+  const seen=new Set(start),q=[...start],oriented=[],used=new Set(),outMap=new Map(),depth=new Map(start.map(k=>[k,0]));
   while(q.length){
     const u=q.shift();
     for(const{to,e}of net.adj.get(u)||[]){
       if(used.has(e))continue;used.add(e);
       oriented.push({e,from:u,to,fwd:e.u===u});
       if(!outMap.has(u))outMap.set(u,[]);outMap.get(u).push(to);
-      if(!seen.has(to)){seen.add(to);q.push(to)}
+      if(!seen.has(to)){seen.add(to);depth.set(to,depth.get(u)+1);q.push(to)}
     }
   }
   let tot=0,live=0;for(const L of net.lines)tot+=polyLen(L.pts);for(const o of oriented)if(o.e.kind==='line')live+=o.e.len;
-  return{net,srcs,oriented,outMap,seen,tot,live};
+  return{net,srcs,oriented,outMap,seen,tot,live,depth};
 }
 function orientedD(o){
   const e=o.e;
@@ -969,7 +969,8 @@ function renderItems(pal,hit,man){
   const anim=hit&&mode==='anim', mst=man?manState(man.m,man.phase,man.upto):(anim?animState():null); MSTATE=mst?mst.st:{}; SHOWST=!!man;
   const lines=S.items.filter(i=>i.type==='line');
   VSEGS=[];for(const l of lines)for(let i=0;i<l.pts.length-1;i++){const a=l.pts[i],b=l.pts[i+1];if(a[0]===b[0]&&a[1]!==b[1])VSEGS.push({id:l.id,x:a[0],y0:Math.min(a[1],b[1]),y1:Math.max(a[1],b[1])})}
-  const RUN0=flowRun(mst);buildArrows(RUN0,designRun());
+  const RUN0=flowRun(mst),DES=designRun();buildArrows(RUN0,DES);
+  const BADCHK=DES.net.chks.filter(c=>DES.depth.has(c.down)&&(!DES.depth.has(c.up)||DES.depth.get(c.down)<DES.depth.get(c.up))).map(c=>c.it);
   let s=lines.map(l=>drawLine(l,pal,hit)).join('');
   const RUN=anim||(hit&&flowOn)?RUN0:null;
   if(anim)s=`<g opacity=".28">${s}</g>`+drawFlowFancy(RUN,pal,['line']);
@@ -982,6 +983,7 @@ function renderItems(pal,hit,man){
     else if(it.type==='title')s+=drawTitle(it,pal);
   }
   for(const it of S.items)if(it.type==='hose')s+=drawHose(it,pal,hit);
+  if(hit)for(const it of BADCHK){const b=rbb(it);s+=`<g pointer-events="none" transform="translate(${it.x+b[2]+12} ${it.y+b[1]-6})"><path d="M0,-10 L10,8 H-10 Z" fill="#F97316" stroke="${pal.paper}" stroke-width="2" stroke-linejoin="round"/><text y="5.5" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="11" fill="#111">!</text><text x="14" y="4" font-family="JetBrains Mono,monospace" font-weight="700" font-size="9.5" fill="#F97316" stroke="${pal.paper}" stroke-width="3" paint-order="stroke">¿AL REVÉS?</text></g>`}
   if(anim)s+=drawLiquids(RUN,pal)+drawFlowFancy(RUN,pal,['hose'])+drawAnimExtras(RUN,pal);
   else if(RUN)s+=drawFlow(RUN,pal,['hose','purga']);
   if(mst)s+=drawManOverlay(man,mst,pal);
