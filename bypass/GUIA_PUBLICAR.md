@@ -64,5 +64,6 @@ Los planos de los usuarios **no se pierden**: viven en el navegador de cada uno,
 
 - **Pago de 19 €:** crear un «Payment Link» en Stripe y ponerlo en el botón «Conseguir Pro».
 - **Lista de espera:** crear un formulario en Formspree (gratis) y poner su dirección en `WAITLIST_URL` (en `index.html`).
+- **Solicitudes de demo de empresas:** otro formulario de Formspree, con su dirección en `LEADS_URL` (en `index.html`).
 
 Las dos cosas se configuran en 5 minutos y no necesitan servidor.

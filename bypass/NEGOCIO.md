@@ -78,6 +78,21 @@ El operador lo descubre y lo usa gratis. Lo enseña en el relevo. Cuando lo usa 
 - **Funciona sin conexión o instalado en los servidores de la planta.** Para una refinería es imprescindible: los planos son información confidencial y no pueden irse a una nube cualquiera.
 - Inicio de sesión corporativo (SSO), soporte y formación.
 
+
+### Precios para empresas (publicados en la web, sección «Para empresas»)
+
+| Modalidad | Para quién | Precio |
+|---|---|---|
+| **Unidad** | Un departamento o una unidad, hasta 25 usuarios | desde **1.500 €/año** |
+| **Planta** | Una refinería o planta, usuarios ilimitados, servidor en su red | desde **6.000 €/año** (6.000–12.000 según tamaño) |
+| **Corporativo** | Un grupo con varias plantas | a medida (25.000–50.000 €/año) |
+| Puesta en marcha | Instalación, configuración y primera unidad | desde 3.000 € (único) |
+| Formación | Operadores, jefes de turno, formadores | desde 600 €/jornada |
+| Digitalización | Pasar sus P&ID a planos de operador | desde 150 €/plano |
+| **Piloto** | 3 meses en una unidad | 2.000–3.000 € o gratis a cambio de caso de éxito |
+
+**Antes de vender a empresas:** constituir la empresa (autónomo o SL), contratar un seguro de responsabilidad civil y darse de alta como proveedor homologado. **Ojo con el conflicto de interés al ofrecérselo a tu propio empleador.**
+
 ### Números de partida
 
 - Refinerías: unas 8 en España y unas 70 en Europa. A eso se suman cientos de plantas químicas, petroquímicas, de tratamiento de aguas, de energía, farmacéuticas y de alimentación. El producto **no es solo para refinerías**: cualquier planta de proceso tiene operadores.

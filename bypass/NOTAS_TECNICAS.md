@@ -88,6 +88,10 @@ El editor: HTML, CSS y JS sin dependencias ni paso de compilación. Las fuentes 
 - **Maniobras del plano**: lista en la sección 01 del modo maniobra, con permiso, nº de pasos y fecha (`created`). Se pueden duplicar (copia con ids nuevos y pasos sin marcar) y borrar.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
+## Para empresas (web)
+
+- Sección `#empresas`: las tres modalidades, los servicios aparte, el piloto, por qué le conviene a la empresa y el formulario «Solicitar demo» (`#demoForm`). Guarda la solicitud en `localStorage['bypass.leads']` y, si se rellena `LEADS_URL`, también la envía por POST a ese formulario.
+
 ## Animaciones de la web
 
 - Tuberías de fondo en la portada (`#heroBg`) que se dibujan solas (`pathLength=1` + `stroke-dashoffset`) y se mueven con parallax al hacer scroll. El scroll es el de `#landing`, no el de la ventana.

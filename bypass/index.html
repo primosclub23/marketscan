@@ -416,6 +416,50 @@ body.pro .pro-tag,body.viewer .pro-tag,body.viewer .planchip{display:none!import
 }
 
 /* ════ Web de presentación (se muestra encima del editor) ════ */
+/* ── Web: para empresas ── */
+#landing .ent{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+#landing .ecard{background:var(--ui2);border:1px solid var(--line2);border-radius:10px;padding:26px;display:flex;flex-direction:column}
+#landing .ecard.star{border:2px solid var(--hz);background:linear-gradient(180deg,rgba(255,196,0,.06),var(--ui2) 40%)}
+#landing .ecard .who{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--hz);margin-bottom:6px}
+#landing .ecard h3{font-family:var(--cond);font-weight:800;font-size:28px;letter-spacing:.06em;text-transform:uppercase}
+#landing .ecard .pr{display:flex;align-items:baseline;gap:8px;margin:10px 0 2px}
+#landing .ecard .pr small{color:var(--tx3);font-size:14px}
+#landing .ecard .pr b{font-family:var(--cond);font-weight:800;font-size:40px;line-height:1}
+#landing .ecard .pr span{color:var(--tx2);font-size:15px}
+#landing .ecard ul{list-style:none;display:flex;flex-direction:column;gap:8px;margin:16px 0 0}
+#landing .ecard li{display:flex;gap:9px;font-size:15px}
+#landing .ecard li::before{content:'✓';color:var(--hz);font-weight:700;flex:none}
+#landing .extras{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+#landing .extra{border:1px dashed var(--line2);border-radius:8px;padding:16px 18px}
+#landing .extra b{display:block;font-family:var(--cond);font-weight:700;font-size:18px;letter-spacing:.04em;text-transform:uppercase}
+#landing .extra em{font-style:normal;color:var(--hz);font-family:var(--mono);font-size:13px;font-weight:700}
+#landing .extra p{color:var(--tx2);font-size:14px;margin-top:4px}
+#landing .pilot{margin-top:18px;display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;background:repeating-linear-gradient(-45deg,rgba(255,196,0,.07) 0 12px,transparent 12px 24px),var(--ui2);border:1px solid var(--hz);border-radius:10px;padding:22px 26px}
+#landing .pilot .big{font-family:var(--cond);font-weight:800;font-size:58px;line-height:.9;color:var(--hz)}
+#landing .pilot .big small{display:block;font-size:16px;letter-spacing:.14em;color:var(--tx2)}
+#landing .pilot h4{font-family:var(--cond);font-weight:800;font-size:24px;text-transform:uppercase;letter-spacing:.03em}
+#landing .pilot p{color:var(--tx2);font-size:15.5px;margin-top:4px}
+#landing .why{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:34px 0}
+#landing .why div{border-top:3px solid var(--line2);padding-top:12px}
+#landing .why b{display:block;font-family:var(--cond);font-weight:700;font-size:18px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+#landing .why p{color:var(--tx2);font-size:14.5px}
+#landing .demo{display:grid;grid-template-columns:.9fr 1.1fr;gap:30px;background:var(--ui2);border:1px solid var(--line2);border-radius:12px;padding:32px}
+#landing .demo h3{font-family:var(--cond);font-weight:800;font-size:34px;text-transform:uppercase;line-height:1}
+#landing .demo .side p{color:var(--tx2);margin-top:12px;font-size:15.5px}
+#landing .demo .side ul{list-style:none;margin-top:16px;display:flex;flex-direction:column;gap:8px;color:var(--tx2);font-size:15px}
+#landing .demo .side li::before{content:'→ ';color:var(--hz)}
+#landing .demo form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#landing .demo label{display:flex;flex-direction:column;gap:5px;font-family:var(--cond);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--tx3)}
+#landing .demo label.full{grid-column:1/-1}
+#landing .demo input,#landing .demo select,#landing .demo textarea{background:var(--ui);border:1px solid var(--line2);border-radius:5px;padding:11px 12px;color:var(--tx);font:15px Barlow,sans-serif;outline:none;text-transform:none;letter-spacing:0}
+#landing .demo textarea{min-height:84px;resize:vertical}
+#landing .demo input:focus,#landing .demo select:focus,#landing .demo textarea:focus{border-color:var(--hz)}
+#landing .demo .ck{flex-direction:row;align-items:flex-start;gap:9px;font-family:Barlow,sans-serif;font-weight:400;font-size:13px;letter-spacing:0;text-transform:none}
+#landing .demo .ck input{margin-top:3px}
+#landing .demo .ok{grid-column:1/-1;display:none;background:rgba(34,179,94,.1);border:1px solid #22B35E;border-radius:6px;padding:14px;color:var(--tx)}
+#landing .demo.sent form > *:not(.ok){display:none}#landing .demo.sent .ok{display:block}
+@media (max-width:900px){#landing .ent,#landing .extras,#landing .why,#landing .demo,#landing .demo form{grid-template-columns:1fr}#landing .pilot{grid-template-columns:1fr}}
+
 /* ── Web: animaciones ── */
 #landing nav{position:sticky}
 #landing .lprog{position:absolute;left:0;bottom:-1px;height:2px;width:100%;background:var(--hz);transform-origin:0 50%;transform:scaleX(0)}
@@ -621,7 +665,7 @@ section{padding:84px 0;border-top:1px solid var(--line)}
       <span class="mark"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#111" stroke-width="2.2" stroke-linejoin="round"><path d="M1 15h4M19 15h4M5 15V6h14v9"/><path d="M8.5 12l7 6v-6l-7 6z" fill="#111" stroke-width="1.4"/></svg></span>
       <span class="word">BYPASS</span>
     </a>
-    <div class="links"><a href="#como">Cómo funciona</a><a href="#funciones">Funciones</a><a href="#pronto">Próximamente</a><a href="#precios">Precios</a><a href="#preguntas">Preguntas</a></div>
+    <div class="links"><a href="#como">Cómo funciona</a><a href="#funciones">Funciones</a><a href="#pronto">Próximamente</a><a href="#precios">Precios</a><a href="#empresas">Empresas</a><a href="#preguntas">Preguntas</a></div>
     <a class="btn pri sm" href="#app">Abrir Bypass</a>
   </div>
   <i class="lprog" id="lProg"></i>
@@ -872,7 +916,7 @@ section{padding:84px 0;border-top:1px solid var(--line)}
     <div class="planta">
       <b>Planta</b>
       <p>Para toda una refinería o planta química: servidor dentro de vuestra red, planos y maniobras centralizados y siempre en la última revisión, símbolos y colores corporativos, y formación.</p>
-      <a class="btn sm" href="#preguntas">Consúltanos</a>
+      <a class="btn sm" href="#empresas">Ver opciones para empresas</a>
     </div>
     <table class="cmp">
       <tr><th>Función</th><th>Gratis</th><th>Pro</th></tr>
@@ -890,9 +934,67 @@ section{padding:84px 0;border-top:1px solid var(--line)}
   </div>
 </section>
 
+<section id="empresas">
+  <div class="wrap">
+    <div class="sh"><span class="n">05</span><h2>Para empresas</h2></div>
+    <p class="sub">Para toda una unidad, una refinería o un grupo con varias plantas. Usuarios ilimitados, todo dentro de vuestra red y los planos de maniobra siempre en la última revisión.</p>
+    <div class="ent">
+      <div class="ecard">
+        <div class="who">UN DEPARTAMENTO O UNA UNIDAD</div><h3>Unidad</h3>
+        <div class="pr"><small>desde</small><b>1.500 €</b><span>/año</span></div>
+        <ul><li>Hasta 25 usuarios con Pro</li><li>Biblioteca compartida de la unidad</li><li>Colores y símbolos de vuestra planta</li><li>Soporte por correo</li></ul>
+      </div>
+      <div class="ecard star">
+        <div class="who">REFINERÍA O PLANTA QUÍMICA</div><h3>Planta</h3>
+        <div class="pr"><small>desde</small><b>6.000 €</b><span>/año</span></div>
+        <ul><li>Usuarios ilimitados en toda la planta</li><li>Servidor dentro de vuestra red: nada sale a internet</li><li>Planos y maniobras centralizados, con revisiones y aprobación</li><li>Acceso con el usuario de empresa</li><li>Soporte prioritario</li></ul>
+      </div>
+      <div class="ecard">
+        <div class="who">GRUPO CON VARIAS PLANTAS</div><h3>Corporativo</h3>
+        <div class="pr"><b>A medida</b></div>
+        <ul><li>Todas vuestras plantas</li><li>Biblioteca y estándares comunes</li><li>Gestión centralizada</li><li>Interlocutor dedicado</li></ul>
+      </div>
+    </div>
+    <div class="extras">
+      <div class="extra"><b>Puesta en marcha</b><em>desde 3.000 €</em><p>Instalación en vuestro servidor, configuración con vuestros estándares y los planos de la primera unidad.</p></div>
+      <div class="extra"><b>Formación</b><em>desde 600 € / jornada</em><p>Para operadores, jefes de turno y formadores, en planta o a distancia.</p></div>
+      <div class="extra"><b>Digitalización</b><em>desde 150 € / plano</em><p>Pasamos vuestros P&amp;ID a planos de operador, listos para usar.</p></div>
+    </div>
+    <div class="pilot">
+      <div class="big">3<small>MESES</small></div>
+      <div><h4>Empieza con un piloto en una sola unidad</h4><p>Lo probáis en una unidad con sus operadores reales. Si funciona, se amplía a toda la planta; si no, no seguís. Sin compromiso y con coste reducido.</p></div>
+    </div>
+    <div class="why">
+      <div><b>Seguridad</b><p>Maniobras de aislamiento claras, con válvulas abiertas y cerradas a la vista. Menos errores al consignar.</p></div>
+      <div><b>Sin nube</b><p>Funciona dentro de vuestra red. Informática lo aprueba sin pelearse con datos en servidores externos.</p></div>
+      <div><b>Formación</b><p>Los operadores nuevos ven cómo es la unidad y qué pasa al cerrar cada válvula.</p></div>
+      <div><b>Relevo</b><p>Todo el turno trabaja con el mismo plano y la misma maniobra, en la última revisión.</p></div>
+    </div>
+    <div class="demo" id="demo">
+      <div class="side">
+        <h3>Solicita una demo</h3>
+        <p>Te enseñamos Bypass con una unidad de ejemplo parecida a la vuestra y vemos juntos si encaja.</p>
+        <ul><li>30 minutos, en remoto o en vuestra planta</li><li>Sin compromiso</li><li>Te respondemos en 48 horas laborables</li></ul>
+      </div>
+      <form id="demoForm" novalidate>
+        <label>Nombre<input name="nombre" autocomplete="name" required></label>
+        <label>Empresa<input name="empresa" autocomplete="organization" required></label>
+        <label>Cargo<input name="cargo" placeholder="Jefe de turno, formación, seguridad…"></label>
+        <label>Correo de empresa<input name="email" type="email" autocomplete="email" required></label>
+        <label>Teléfono (opcional)<input name="tel" type="tel" autocomplete="tel"></label>
+        <label>Qué os interesa<select name="modalidad"><option>Planta</option><option>Unidad</option><option>Corporativo</option><option>Proyecto piloto</option><option>Aún no lo sé</option></select></label>
+        <label class="full">Cuéntanos un poco (opcional)<textarea name="mensaje" placeholder="Tipo de planta, nº de unidades u operadores, qué os gustaría mejorar…"></textarea></label>
+        <label class="full ck"><input type="checkbox" name="ok"> Acepto que usen estos datos solo para contactarme sobre Bypass.</label>
+        <div class="full"><button class="btn pri" type="submit">Solicitar demo</button></div>
+        <div class="ok"><b>¡Gracias!</b> Hemos recibido tu solicitud. Te escribiremos en un máximo de 48 horas laborables.</div>
+      </form>
+    </div>
+  </div>
+</section>
+
 <section id="preguntas">
   <div class="wrap">
-    <div class="sh"><span class="n">05</span><h2>Preguntas</h2></div>
+    <div class="sh"><span class="n">06</span><h2>Preguntas</h2></div>
     <div class="faq" style="margin-top:28px">
       <details><summary>¿Tengo que instalar algo o registrarme?</summary><p>No. Pulsas «Pruébalo gratis» y ya estás dibujando en el navegador del ordenador, la tablet o el móvil.</p></details>
       <details><summary>¿Dónde se guardan mis planos?</summary><p>En tu propio navegador. No se suben a ninguna nube. Para tener copia o pasarlos a otro equipo, expórtalos a un archivo.</p></details>
@@ -1052,7 +1154,7 @@ section{padding:84px 0;border-top:1px solid var(--line)}
         <li>PDF y hojas sin marca «versión gratuita»</li><li>Modo Animación y simulador de válvulas</li>
       </ul>
       <div class="price"><b>19 €</b><span>pago único · sin suscripción · actualizaciones incluidas</span></div>
-      <p class="note" style="font-size:12px">¿Para toda una planta, con servidor propio dentro de la red de la refinería? Versión <b>Planta</b>: consúltanos.</p>
+      <p class="note" style="font-size:12px">¿Para toda una planta, con servidor propio dentro de la red de la refinería? Mira la <a href="#empresas" style="color:var(--hz)">versión para empresas</a>.</p>
       <p class="note" style="font-size:11.5px;color:var(--tx3)" id="proDemo">Prototipo: el pago todavía no está conectado. «Activar Pro» lo activa en este navegador para que puedas probarlo.</p>
     </div>
     <div class="ft"><a class="btn" href="#precios">Ver planes</a><span style="display:flex;gap:8px"><button class="btn" data-close>Ahora no</button><button class="btn pri" id="proGo">Activar Pro</button></span></div>
@@ -2863,6 +2965,23 @@ function route(){
   const t=h&&document.getElementById(h);if(t)setTimeout(()=>t.scrollIntoView(),30);else L.scrollTop=0;
 }
 addEventListener('hashchange',route);route();
+/* ════════ Web: solicitud de demo para empresas ════════
+   LEADS_URL: formulario que recibe la solicitud (Formspree, Google Apps Script…). Vacía = solo se guarda en este navegador. */
+const LEADS_URL='';
+(function(){
+  const f=$('#demoForm');if(!f)return;
+  f.addEventListener('submit',e=>{
+    e.preventDefault();
+    const d=Object.fromEntries(new FormData(f).entries());
+    if(!d.nombre.trim()||!d.empresa.trim()){toast('Falta el nombre o la empresa');return}
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email.trim())){toast('Escribe un correo válido');return}
+    if(!d.ok){toast('Marca la casilla para poder contactarte');return}
+    const rec={...d,date:new Date().toISOString(),origen:'web-empresas'};delete rec.ok;
+    try{const all=JSON.parse(localStorage.getItem('bypass.leads')||'[]');all.push(rec);localStorage.setItem('bypass.leads',JSON.stringify(all))}catch(_){}
+    if(LEADS_URL)fetch(LEADS_URL,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(rec)}).catch(()=>{});
+    $('#demo').classList.add('sent');toast('Solicitud enviada');
+  });
+})();
 /* ════════ Web: parallax, apariciones, cifras y comparador ════════ */
 (function(){
   const L=$('#landing');if(!L||VIEWER)return;
@@ -2887,7 +3006,7 @@ addEventListener('hashchange',route);route();
   // apariciones escalonadas
   const io=new IntersectionObserver(es=>{for(const e of es)if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);if(e.target.dataset.count!=null)count(e.target);if(e.target.id==='cmpw')sweep()}},{root:L,threshold:.15});
   function watch(){
-    const sel='#landing .sh,#landing .sub,#landing .step,#landing .feat,#landing .sc,#landing .plan,#landing .planta,#landing table.cmp,#landing .faq details,#landing .stat,#landing #cmpw,#landing .final h2,#landing .final p';
+    const sel='#landing .sh,#landing .sub,#landing .step,#landing .feat,#landing .sc,#landing .plan,#landing .planta,#landing table.cmp,#landing .faq details,#landing .stat,#landing .ecard,#landing .extra,#landing .pilot,#landing .why div,#landing .demo,#landing #cmpw,#landing .final h2,#landing .final p';
     const groups=new Map();
     document.querySelectorAll(sel).forEach(el=>{if(el.classList.contains('rv'))return;el.classList.add('rv');const p=el.parentElement,i=(groups.get(p)||0);groups.set(p,i+1);el.style.transitionDelay=(Math.min(i,6)*70)+'ms';io.observe(el)});
     document.querySelectorAll('#landing [data-count]').forEach(el=>io.observe(el));
