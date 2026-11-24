@@ -470,7 +470,7 @@ const SYM={
   motor:{n:'Motorizada',g:'va',tag:'MOV',bb:[-20,-42,20,12],d:c=>BOW+'<path fill="none" d="M0,0 V-22"/><rect x="-11" y="-42" width="22" height="20"/><text y="-27.5" text-anchor="middle" font-family="JetBrains Mono,monospace" font-weight="700" font-size="12" fill="'+c+'" stroke="none">M</text>'},
   tresvias:{n:'Tres vías',g:'va',tag:'',bb:[-20,-12,20,24],d:()=>BOW+'<path d="M0,0 L-12,24 L12,24 Z"/>'},
   psv:{n:'Seguridad',g:'va',tag:'PSV',bb:[-12,-31,24,24],d:()=>'<path d="M0,0 L-12,24 L12,24 Z M0,0 L24,-12 L24,12 Z"/><path fill="none" stroke-width="1.5" d="M0,0 V-5 L-7,-9 L7,-14 L-7,-19 L7,-24 L0,-27 V-31"/>'},
-  retencion:{n:'Retención',g:'va',tag:'',bb:[-20,-12,20,12],d:c=>'<path d="M-20,-12 L0,0 L-20,12 Z"/><path fill="'+c+'" d="M20,-12 L0,0 L20,12 Z"/>'},
+  retencion:{n:'Retención',g:'va',tag:'',bb:[-20,-25,20,12],d:c=>'<path d="M-20,-12 L0,0 L-20,12 Z"/><path fill="'+c+'" d="M20,-12 L0,0 L20,12 Z"/><path fill="none" stroke-width="1.8" d="M-12,-20 H6"/><path fill="'+c+'" stroke="none" d="M13,-20 L4,-24.5 L4,-15.5 Z"/>'},
   ciego:{n:'Ciego / figura 8',g:'va',tag:'',bb:[-7,-28,7,13],d:c=>'<path fill="none" stroke-width="4" d="M0,-11 V12"/><circle cy="-21" r="6" fill="'+c+'"/>'},
 
   venteo:{n:'Venteo ¾"',g:'pm',tag:'3/4"',fixed:true,side:true,bb:[-9,-43,9,2],d:(c,it,f)=>'<path fill="none" d="M0,0 V-10 M0,-30 V-41"/><path stroke-width="1.6" d="M-7,-10 L0,-20 L7,-10 Z M-7,-30 L0,-20 L7,-30 Z"'+(f?` fill="${f}" stroke="${f}"`:'')+'/><path fill="none" stroke-width="3" d="M-5,-41 H5"/>'},
@@ -662,34 +662,42 @@ const pkey=p=>Math.round(p[0]*2)/2+','+Math.round(p[1]*2)/2;
 function flowNet(mst){
   const lines=S.items.filter(i=>i.type==='line'),syms=S.items.filter(i=>i.type==='sym'),adj=new Map(),dead=new Set();
   const link=(u,v,e)=>{e.u=u;e.v=v;for(const[a,b]of[[u,v],[v,u]]){if(!adj.has(a))adj.set(a,[]);adj.get(a).push({to:b,e})}};
+  const linkDir=(u,v,e)=>{e.u=u;e.v=v;if(!adj.has(u))adj.set(u,[]);adj.get(u).push({to:v,e})}; // solo de u a v (retención)
   const isShut=it=>{const k=it.kind,ms=MSTATE[it.id];if(k==='ciego')return ms==='closed';if(k==='psv')return ms!=='open';return CLOSABLE.includes(k)&&(ms?ms==='closed':!!it.closed)};
   for(const L of lines){
     const len=polyLen(L.pts),br=[{d:0},{d:len}];
     for(const M of lines)if(M!==L)for(const q of[M.pts[0],M.pts[M.pts.length-1]]){const d=distAlong(L.pts,q);if(d>.6&&d<len-.6)br.push({d})}
     for(const it of syms){
-      if(isInline(it.kind)||it.kind==='ciego'){const d=distAlong(L.pts,[it.x,it.y]);if(d<0)continue;if(PURGA.includes(it.kind))br.push({d});else if(isShut(it))br.push({d,kill:it.id})}
+      if(isInline(it.kind)||it.kind==='ciego'){const d=distAlong(L.pts,[it.x,it.y]);if(d<0)continue;if(PURGA.includes(it.kind))br.push({d});else if(it.kind==='retencion'){if(d>.6&&d<len-.6)br.push({d,chk:it})}else if(isShut(it))br.push({d,kill:it.id})}
       else for(const pt of portsOf(it)){const d=distAlong(L.pts,pt.p);if(d>.6&&d<len-.6)br.push({d})}
     }
     if(mst)for(const b of mst.blinds)if(b.target===L.id){const d=distAlong(L.pts,[b.x,b.y]);if(d>=0)br.push({d,kill:'b'+b.id})}
     for(const h of S.items)if(h.type==='hose')for(const q of[h.a,h.b]){const d=distAlong(L.pts,q);if(d>.6&&d<len-.6)br.push({d})}
     br.sort((a,b)=>a.d-b.d);
-    const nd=[];for(const b of br){const l=nd[nd.length-1];if(l&&Math.abs(l.d-b.d)<.6){if(b.kill)l.kill=b.kill}else nd.push({d:b.d,kill:b.kill})}
+    const nd=[];for(const b of br){const l=nd[nd.length-1];if(l&&Math.abs(l.d-b.d)<.6){if(b.kill)l.kill=b.kill;if(b.chk)l.chk=b.chk}else nd.push({d:b.d,kill:b.kill,chk:b.chk})}
     for(let i=0;i<nd.length-1;i++){
       const a=nd[i],b=nd[i+1];if(b.d-a.d<.5)continue;const pts=subPath(L.pts,a.d,b.d);if(pts.length<2)continue;
-      const ka=a.kill?`K:${a.kill}:${L.id}:${i}a`:pkey(pts[0]),kb=b.kill?`K:${b.kill}:${L.id}:${i}b`:pkey(pts[pts.length-1]);
+      const ka=a.kill?`K:${a.kill}:${L.id}:${i}a`:a.chk?`C:${a.chk.id}:hi`:pkey(pts[0]),kb=b.kill?`K:${b.kill}:${L.id}:${i}b`:b.chk?`C:${b.chk.id}:lo`:pkey(pts[pts.length-1]);
       link(ka,kb,{kind:'line',ln:L,pts,len:b.d-a.d});
     }
+    // retención: solo deja pasar en el sentido de su flecha
+    for(const n of nd)if(n.chk){const t=tangentAt(L.pts,[n.chk.x,n.chk.y]),v=chkDir(n.chk),up=t[0]*v[0]+t[1]*v[1]>0;
+      linkDir(`C:${n.chk.id}:${up?'lo':'hi'}`,`C:${n.chk.id}:${up?'hi':'lo'}`,{kind:'chk',it:n.chk,len:0})}
   }
   for(const it of syms){
     if(it.kind==='ciego'||it.kind==='instrumento')continue;
     const ps=portsOf(it);
     if(PURGA.includes(it.kind)){if(!isShut(it)&&ps[0])link(pkey([it.x,it.y]),pkey(ps[0].p),{kind:'purga',it,pts:[[it.x,it.y],ps[0].p],len:0});continue}
     if(isShut(it)){for(const pt of ps)dead.add(pkey(pt.p));continue}
+    if(it.kind==='retencion'&&ps.length===2){const v=chkDir(it),a=ps[0],b=ps[1],aUp=(b.p[0]-a.p[0])*v[0]+(b.p[1]-a.p[1])*v[1]>0,u=aUp?a:b,w=aUp?b:a;
+      linkDir(pkey(u.p),'E:'+it.id,{kind:'hub',it,len:0});linkDir('E:'+it.id,pkey(w.p),{kind:'hub',it,len:0});continue}
     for(const pt of ps)link('E:'+it.id,pkey(pt.p),{kind:'hub',it,len:0});
   }
   for(const h of S.items)if(h.type==='hose'&&MSTATE[h.id]!=='off')link(pkey(h.a),pkey(h.b),{kind:'hose',h,len:0});
   return{adj,lines,dead};
 }
+function chkDir(it){const f=it.flip?-1:1,r=(((it.rot||0)%360)+360)%360;return r===90?[0,f]:r===180?[-f,0]:r===270?[0,-f]:[f,0]}
+function tangentAt(p,q){for(let i=0;i<p.length-1;i++){const a=p[i],b=p[i+1],l=segLen(a,b);if(l&&Math.abs(segLen(a,q)+segLen(q,b)-l)<.6)return[(b[0]-a[0])/l,(b[1]-a[1])/l]}return[1,0]}
 function portOwners(){const m=new Map();for(const it of S.items)if(it.type==='sym'&&!isInline(it.kind))for(const pt of portsOf(it))m.set(pkey(pt.p),it);return m}
 /* Entradas automáticas: límites de batería donde empieza una línea o una manguera, y líneas que empiezan sueltas */
 function autoSources(){
@@ -1069,6 +1077,7 @@ function renderInspector(){
     body+=`<div><label>${d.inside?'Texto':'Tag'}</label><input type="text" data-f="tag" value="${esc(it.tag)}" placeholder="${d.g==='va'?'Ej: XV-101':'Ej: D-101'}"></div>`;
     body+=`<div><label>Color</label>${swatches(it.fluid,'fluid')}</div>`;
     body+=`<div><label>Tamaño</label>${seg('scale',[[0.75,'S'],[1,'M'],[1.35,'L'],[1.7,'XL']],it.scale||1)}</div>`;
+    if(it.kind==='retencion')body+=`<div><label>Sentido de paso</label><div class="row"><button class="btn" data-act="flip">⇄ Invertir sentido</button></div></div>`;
     if(CLOSABLE.includes(it.kind))body+=`<div><label>Posición <span style="text-transform:none;letter-spacing:0">(tecla C)</span></label>${seg('closed',[[0,'Abierta'],[1,'Cerrada']],it.closed?1:0)}</div>`;
     body+=`<div class="row"><button class="btn" data-act="rot">↻ Girar</button><button class="btn" data-act="flip">⇋ Espejo</button></div>`;
   } else if(it.type==='line'){
@@ -1294,7 +1303,7 @@ function place(kind,p){
   const g=sp(p);
   if(kind==='legend')it={type:'legend',x:g[0],y:g[1]};
   else if(kind==='title')it={type:'title',x:g[0],y:g[1]};
-  else{it={type:'sym',kind,rot:0,tag:autoTag(kind)};const r=snapSym(Object.assign({id:'_n'},it),p);it.x=r.x;it.y=r.y;it.rot=r.rot;it.fluid=autoFluid(kind,[r.x,r.y]);if(PURGA.includes(kind))it.closed=true;if(r.t)snapFx(r.t.p,r.t)}
+  else{it={type:'sym',kind,rot:0,tag:autoTag(kind)};const r=snapSym(Object.assign({id:'_n'},it),p);it.x=r.x;it.y=r.y;it.rot=r.rot;it.fluid=autoFluid(kind,[r.x,r.y]);if(kind==='retencion'&&r.t&&r.t.kind==='seg'){const L=get(r.t.id),t=L?tangentAt(L.pts,[r.x,r.y]):[1,0];if(Math.abs(t[0])>=Math.abs(t[1])){it.rot=0;it.flip=t[0]<0}else{it.rot=90;it.flip=t[1]<0}}if(PURGA.includes(kind))it.closed=true;if(r.t)snapFx(r.t.p,r.t)}
   it.id=uid(); S.items.push(it); sel=it.id; commit(); renderAll();
 }
 function newText(p){const it={id:uid(),type:'text',x:p[0],y:p[1]+5,text:'',size:16};S.items.push(it);sel=it.id;renderAll();editItem(it,'text')}

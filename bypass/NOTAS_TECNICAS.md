@@ -71,6 +71,7 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
   - Entradas: `S.flowSrc` (se guardan con el plano) o, si no hay, `autoSources()`. Automáticas: límites de batería con algo conectado en la punta de la flecha (salvo los que empiezan por «A …») y líneas que empiezan sueltas.
   - En el modo animación, «Elegir entradas» activa `animPick`: tocar un extremo de línea o manguera, un límite o un equipo pone o quita esa entrada.
   - El nivel de los depósitos usa `vesselFlows()` y `hasExit()`: solo cuenta la salida si el flujo llega a algún sitio, no si acaba en una válvula cerrada.
+- **Retenciones con sentido**: el símbolo lleva una flecha. El sentido permitido es el +x local, con giro y espejo aplicados (`chkDir()`). Al soltarla sobre una línea se orienta según el sentido de dibujo (`tangentAt()`); con `F` o el inspector se invierte. En `flowNet()` la línea se parte en la retención y los dos lados se unen con un enlace de un solo sentido (`linkDir`). Si las líneas llegan a sus bocas, el enlace también es de un solo sentido.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
 ## Móvil y tablet
