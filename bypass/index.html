@@ -309,6 +309,7 @@ details.vlist[open] summary::before{content:'▾ '}
 }
 
 .menubtn{display:none}
+@media (max-width:1500px){body:not(.viewer) .saved{display:none}}
 @media (max-width:700px){
   .app{grid-template-columns:1fr !important;grid-template-rows:52px 5px 1fr}
   header{gap:6px;padding:0 8px}
@@ -1123,6 +1124,7 @@ function renderTools(){
   const hints={select:'Clic: seleccionar · Arrastrar: mover · Clic en un cuadradito de un equipo: sacar línea',line:drawingL?'Clic: codo · Doble clic / Enter: terminar · se engancha sola':'Clic para empezar · se engancha a bocas y líneas',hose:drawingH?'Clic en el destino · se engancha sola':'Clic en el origen de la manguera',text:'Clic para escribir',hand:'Arrastra para moverte',stamp:'Clic para colocar · Esc: cancelar'};
   if(VIEWER&&mode==='draw'){$('#stTool').innerHTML=`<b style="color:#38BDF8">SOLO LECTURA</b> &nbsp;Arrastra para moverte · rueda o dos dedos para el zoom`;return}
   if(mode==='anim'){$('#stTool').innerHTML=animPick?`<b style="color:#22B35E">ELEGIR ENTRADAS</b> &nbsp;Toca el extremo de una línea, un límite o un equipo`:`<b style="color:#38BDF8">ANIMACIÓN</b> &nbsp;Toca una válvula, purga o manguera para abrirla o cerrarla`;stage.classList.add('anim');return}
+  if(VIEWER&&mode==='man'){$('#stTool').innerHTML=`<b style="color:#E5484D">MANIOBRA</b> &nbsp;Solo lectura · usa ◀ ▶ en «Estado de válvulas» para verla paso a paso`;return}
   if(mode==='man'){$('#stTool').innerHTML=`<b style="color:#E5484D">MANIOBRA</b> &nbsp;Toca una válvula, línea o equipo para añadir un paso`;return}
   $('#stTool').innerHTML=`<b>${(TOOLS.find(t=>t.k===tool)||{n:tool==='hose'?'Manguera':'Colocar'}).n.toUpperCase()}</b> &nbsp;${hints[tool]}`;
 }
