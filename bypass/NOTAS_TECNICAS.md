@@ -1,8 +1,11 @@
 # Bypass: notas técnicas
 
-Editor web de esquemas de proceso para operadores. Es un único archivo, `index.html`: HTML, CSS y JS sin dependencias ni paso de compilación. Las fuentes se cargan de Google Fonts.
+Editor web de esquemas de proceso para operadores.
 
-## Estructura del código (`index.html`)
+- `index.html`: web de presentación (qué es, cómo funciona, funciones, próximamente, precios y preguntas), con los botones «Pruébalo gratis» (→ `app.html`) y «Bypass Pro» (→ `app.html?plan=pro`).
+- `app.html`: el editor. Es un único archivo: HTML, CSS y JS sin dependencias ni paso de compilación. Las fuentes se cargan de Google Fonts.
+
+## Estructura del código (`app.html`)
 
 - **`SYM`**: catálogo de símbolos. Cada uno tiene:
   - `n`: nombre;
@@ -82,6 +85,14 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
 - **Biblioteca «Mis planos»**: `localStorage['bypass.lib.v1']` guarda un mapa id → `{id, name, unit, updated, manis:[títulos], doc}`. Cada `commit()` actualiza la entrada del plano abierto (`libPut`, con retardo). El campo **Unidad** (`S.unit`, junto al nombre) agrupa los planos. Desde el diálogo se puede buscar (también por título de maniobra), abrir, duplicar, exportar, borrar (con confirmación) y **exportar unidad**: `{app, v, unit, lib:[docs]}` en `*-unidad.bypass`. «Abrir/Importar» acepta tanto un plano suelto como una unidad entera, y lo mete en la biblioteca.
 - **Maniobras del plano**: lista en la sección 01 del modo maniobra, con permiso, nº de pasos y fecha (`created`). Se pueden duplicar (copia con ids nuevos y pasos sin marcar) y borrar.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
+
+## Gratis / Pro y lista de espera
+
+- `isPro()`: `localStorage['bypass.pro']==='1'` o el visor. **Prototipo: el pago no está conectado**; «Activar Pro» de la ventana Pro lo activa en el navegador.
+- **Gratis**: todo el editor, el modo maniobra con su hoja, ver flujo, PNG y PDF A4 en color (con «versión gratuita» en el cajetín y en la hoja) y hasta `FREE_PLANS`=3 planos.
+- **Pro** (`needPro(nombre)` abre la ventana Pro si no lo es): modo animación, compartir por correo, PDF A3 y B/N, exportar e importar unidades, y planos ilimitados (`needRoom()`).
+- `?plan=pro` en la URL abre la ventana Pro al entrar (viene del botón de la web).
+- **Próximamente** (puerta falsa o lista de espera): la sección 07 del editor y la sección «En camino» de la web muestran funciones futuras (`SOON`). Al tocarlas, piden el correo con consentimiento y guardan `{feature, name, email, date}` en `localStorage['bypass.waitlist']`. Si se rellena `WAITLIST_URL` (en los dos archivos), también se envía por POST a ese formulario (Formspree, Google Apps Script…) para contar las peticiones de cada función.
 
 ## Móvil y tablet
 
