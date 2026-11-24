@@ -78,6 +78,7 @@ Editor web de esquemas de proceso para operadores. Es un único archivo, `index.
 - **Numerar válvulas** (botón «Numerar» en 04 Válvulas): pone V-01, V-02… a las válvulas y retenciones sin tag, en orden de lectura.
 - **Letras A/C y blanco y negro**: en maniobra y en la hoja, cada válvula lleva una placa «A» o «C». El convenio `bn` (B/N) pinta las cerradas rellenas de tinta y las abiertas huecas.
 - **PDF** (botón «PDF»): `openPrint()` monta una página A4 o A3, horizontal o vertical según la forma del plano, con el plano y un cajetín (plano, maniobra y permiso si se está en modo maniobra, fecha, revisión y formato). El tamaño de página se fija con `@page` (`#pgsize`) y se guarda con «Imprimir → Guardar como PDF». En B/N los fluidos pasan a grises oscuros sobre fondo blanco.
+- **Compartir por correo (visor)**: botón «Compartir». `APP_SRC` guarda una copia limpia de la app al cargar. `viewerHTML()` le inyecta `window.BYPASS_VIEWER={doc,mode,date,theme}` y se descarga como `*-visor.html` (~170 KB). Con `VIEWER` activo es de solo lectura: no lee ni escribe `localStorage`, no se puede editar ni añadir pasos, y solo se navega entre Plano, Maniobra (con el visor paso a paso) y Animación.
 - **Formato de archivo `.bypass`**: JSON `{app:'bypass', v:1, doc:S}`.
 
 ## Móvil y tablet

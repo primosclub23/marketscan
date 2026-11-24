@@ -197,6 +197,15 @@ details.vlist[open] summary::before{content:'▾ '}
 .flowbtn.on{background:var(--hz);border-color:var(--hz);color:#111}
 .flowbtn svg{width:14px;height:14px}
 .stage.paper .flowbtn:not(.on){background:rgba(255,255,255,.9);border-color:#d6d2c7;color:#444}
+/* ── Visor de solo lectura ── */
+.viewer #bUndo,.viewer #bRedo,.viewer #bNew,.viewer #bOpen,.viewer #bSave,.viewer #bSvg,.viewer #bShare,.viewer .tb .sep{display:none!important}
+.viewer .app:not(.man):not(.anim){grid-template-columns:1fr!important}
+.viewer .app:not(.man):not(.anim) aside{display:none}
+.viewer .app:not(.man):not(.anim) .menubtn{display:none}
+.viewer [data-mact=new],.viewer [data-mact=note],.viewer [data-mact=gen],.viewer [data-mact=delman],.viewer [data-mact=sample],.viewer .st .ops,.viewer #asideMan input{pointer-events:none}
+.viewer [data-mact=new],.viewer [data-mact=note],.viewer [data-mact=gen],.viewer [data-mact=delman],.viewer [data-mact=sample],.viewer .st .ops{display:none!important}
+.viewer .st .num{pointer-events:none}
+.viewer .docname input{pointer-events:none}
 /* ── Imán ── */
 .snapring{transform-box:fill-box;transform-origin:center;animation:snapPulse .9s ease-out infinite}
 @keyframes snapPulse{0%{transform:scale(.55);opacity:1}100%{transform:scale(1.8);opacity:0}}
@@ -357,6 +366,7 @@ details.vlist[open] summary::before{content:'▾ '}
       <button class="btn" id="bOpen" title="Abrir archivo .bypass"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5h7l2 2h9v12H3z"/></svg><span class="lbl">Abrir</span></button>
       <button class="btn" id="bSave" title="Guardar archivo (Ctrl+S)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/></svg><span class="lbl">Guardar</span></button>
       <button class="btn" id="bSvg" title="Exportar SVG"><span class="lbl">SVG</span></button>
+      <button class="btn" id="bShare" title="Compartir por correo: visor de solo lectura"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg><span class="lbl">Compartir</span></button>
       <button class="btn pri" id="bPdf" title="Exportar a PDF o imprimir (A4 / A3)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg><span class="lbl">PDF</span></button>
       <button class="btn" id="bPng" title="Exportar imagen PNG"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg><span class="lbl">PNG</span></button>
     </div>
@@ -431,6 +441,19 @@ details.vlist[open] summary::before{content:'▾ '}
     <div class="ft"><button class="btn" id="flAdd">+ Añadir fluido</button><button class="btn pri" data-close>Listo</button></div>
   </div>
 </div>
+<div class="modal" id="mShare" hidden>
+  <div class="dlg">
+    <div class="ih"><span class="code">MAIL</span><b>Compartir por correo</b><button data-close>×</button></div>
+    <div class="body">
+      <p class="note" style="color:var(--tx2)">Se descarga <b id="shFile" style="font-family:var(--mono);color:var(--tx)"></b>: un archivo que se abre con <b>doble clic</b> en cualquier móvil, tablet u ordenador, sin instalar nada y sin internet. El operador lo ve todo pero <b>no puede modificar nada</b>.</p>
+      <p class="note" id="shInc"></p>
+      <label style="font-family:var(--cond);font-weight:600;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin-top:6px">Se abre en</label>
+      <div class="seg" id="shMode"></div>
+      <p class="note" style="margin-top:6px">Adjúntalo al correo como cualquier documento. Si el correo lo bloquea, guárdalo en la carpeta compartida de la unidad.</p>
+    </div>
+    <div class="ft"><button class="btn" data-close>Cancelar</button><button class="btn pri" id="shGo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg>Descargar visor</button></div>
+  </div>
+</div>
 <div class="modal" id="mNew" hidden>
   <div class="dlg">
     <div class="ih"><span class="code">NEW</span><b>Nuevo plano</b><button data-close>×</button></div>
@@ -444,6 +467,8 @@ details.vlist[open] summary::before{content:'▾ '}
 
 <script>
 'use strict';
+const APP_SRC='<!DOCTYPE html>\n'+document.documentElement.outerHTML; // copia limpia de la app, antes de dibujar nada
+const VIEWER=window.BYPASS_VIEWER||null; // si existe, esto es un visor de solo lectura
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const GRID=10, KEY='bypass.doc.v1', TKEY='bypass.theme';
 const THEMES={
@@ -1096,6 +1121,7 @@ function renderTools(){
   $$('.tile').forEach(t=>t.classList.toggle('on',(tool==='stamp'&&t.dataset.kind===stamp)||(tool==='hose'&&t.dataset.kind==='hose_'+hoseKind)));
   stage.className='stage t-'+tool+(theme==='papel'?' paper':'')+(mode==='anim'?' anim':'')+(mode==='anim'&&animPaused?' paused':'');
   const hints={select:'Clic: seleccionar · Arrastrar: mover · Clic en un cuadradito de un equipo: sacar línea',line:drawingL?'Clic: codo · Doble clic / Enter: terminar · se engancha sola':'Clic para empezar · se engancha a bocas y líneas',hose:drawingH?'Clic en el destino · se engancha sola':'Clic en el origen de la manguera',text:'Clic para escribir',hand:'Arrastra para moverte',stamp:'Clic para colocar · Esc: cancelar'};
+  if(VIEWER&&mode==='draw'){$('#stTool').innerHTML=`<b style="color:#38BDF8">SOLO LECTURA</b> &nbsp;Arrastra para moverte · rueda o dos dedos para el zoom`;return}
   if(mode==='anim'){$('#stTool').innerHTML=animPick?`<b style="color:#22B35E">ELEGIR ENTRADAS</b> &nbsp;Toca el extremo de una línea, un límite o un equipo`:`<b style="color:#38BDF8">ANIMACIÓN</b> &nbsp;Toca una válvula, purga o manguera para abrirla o cerrarla`;stage.classList.add('anim');return}
   if(mode==='man'){$('#stTool').innerHTML=`<b style="color:#E5484D">MANIOBRA</b> &nbsp;Toca una válvula, línea o equipo para añadir un paso`;return}
   $('#stTool').innerHTML=`<b>${(TOOLS.find(t=>t.k===tool)||{n:tool==='hose'?'Manguera':'Colocar'}).n.toUpperCase()}</b> &nbsp;${hints[tool]}`;
@@ -1171,11 +1197,11 @@ let saveT;
 function commit(){
   const s=JSON.stringify(S); if(hist[hi]===s)return;
   hist=hist.slice(0,hi+1); hist.push(s); if(hist.length>150)hist.shift(); hi=hist.length-1;
-  try{localStorage.setItem(KEY,s)}catch(e){}
-  const el=$('#saved'); el.innerHTML='<b>●</b> guardado'; clearTimeout(saveT);
+  if(!VIEWER)try{localStorage.setItem(KEY,s)}catch(e){}
+  const el=$('#saved');if(VIEWER)return; el.innerHTML='<b>●</b> guardado'; clearTimeout(saveT);
   updUndo();
 }
-function restore(s){S=JSON.parse(s);if(sel&&!get(sel))sel=null;msel=new Set([...msel].filter(i=>get(i)));$('#docName').value=S.name;try{localStorage.setItem(KEY,s)}catch(e){}renderAll()}
+function restore(s){S=JSON.parse(s);if(sel&&!get(sel))sel=null;msel=new Set([...msel].filter(i=>get(i)));$('#docName').value=S.name;if(!VIEWER)try{localStorage.setItem(KEY,s)}catch(e){}renderAll()}
 function undo(){if(hi>0){hi--;restore(hist[hi])}}
 function redo(){if(hi<hist.length-1){hi++;restore(hist[hi])}}
 function updUndo(){$('#bUndo').disabled=hi<=0;$('#bRedo').disabled=hi>=hist.length-1}
@@ -1470,6 +1496,7 @@ svg.addEventListener('pointerdown',e=>{
   const p=toW(e), g=sp(p);
   try{svg.setPointerCapture(e.pointerId)}catch(_){}
   if(e.button===1||e.button===2||tool==='hand'||spaceDown){drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};stage.classList.add('panning');return}
+  if(VIEWER&&mode==='draw'){drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};return}
   if(mode==='anim'){
     const node=e.target.closest('[data-id]'),it=node&&get(node.dataset.id);
     if(animPick){if(it){pickSource(it,p);return}drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y};return}
@@ -1479,10 +1506,10 @@ svg.addEventListener('pointerdown',e=>{
   if(mode==='man'){
     const mk=e.target.closest('[data-step]'); if(mk){closePop();flashStep(mk.dataset.step);return}
     const node=e.target.closest('[data-id]'), it=node&&get(node.dataset.id);
-    if(it&&(it.type==='sym'||it.type==='line'||it.type==='hose')){openPop(it,p,e);return}
+    if(!VIEWER&&it&&(it.type==='sym'||it.type==='line'||it.type==='hose')){openPop(it,p,e);return}
     closePop(); drag={t:'pan',sx:e.clientX,sy:e.clientY,vx:view.x,vy:view.y}; return;
   }
-  if(mode==='draw'&&tool==='select'){
+  if(mode==='draw'&&tool==='select'&&!VIEWER){
     const pt=e.target.closest('[data-port]');
     if(pt){const[id,i]=pt.dataset.port.split(':'),q=portsOf(get(id))[+i].p;hoverId=null;sel=null;setTool('line');drawingL={pts:[[q[0],q[1]]],cur:[[q[0],q[1]]],startId:id};snapFx(q,{kind:'port'});renderAll();return}
   }
@@ -1579,7 +1606,7 @@ svg.addEventListener('pointermove',e=>{
     renderOver();
   } else if(tool==='hose'){const m=e.altKey?null:magnet(p,{from:drawingH&&drawingH.a});snapT=m;hoseCur=m?m.p:g;ghostAt=hoseCur;renderOver()}
   else if(tool==='stamp'){ghostAt=g;ghostRaw=p;renderOver()}
-  else if(tool==='select'&&mode==='draw'){
+  else if(tool==='select'&&mode==='draw'&&!VIEWER){
     const n=e.target.closest('[data-port],[data-id]'),id=n?(n.dataset.port?n.dataset.port.split(':')[0]:n.dataset.id):null,it=id&&get(id);
     const hid=it&&it.type==='sym'&&!isInline(it.kind)&&portsOf(it).length?id:null;
     if(hid!==hoverId){hoverId=hid;renderOver()}
@@ -1660,7 +1687,7 @@ document.addEventListener('keydown',e=>{
   if(mod&&k==='v'&&mode==='draw'){e.preventDefault();pasteClip();return}
   if(mod&&k==='a'&&mode==='draw'){e.preventDefault();setMulti(S.items.map(i=>i.id));renderAll();return}
   if(mod)return;
-  if(mode!=='draw'){
+  if(mode!=='draw'||VIEWER){
     if(mode==='anim'&&k==='p'){animPaused=!animPaused;applySpeed();renderAnim();return}
     if(e.key==='Escape')closePop(); else if(k==='a'&&mode==='man')toggleFlow(); else if(k==='0')fit(); else if(k==='+'||k==='=')zoomAt(1.2); else if(k==='-')zoomAt(1/1.2);
     else if(e.key===' '){spaceDown=true;stage.classList.add('panning');e.preventDefault()}
@@ -1711,6 +1738,21 @@ function saveFile(){download(new Blob([JSON.stringify({app:'bypass',v:1,doc:S},n
 $('#bSave').onclick=saveFile;
 $('#bSvg').onclick=()=>{download(new Blob([buildSVG(P).s],{type:'image/svg+xml'}),slug()+'.svg');toast('SVG exportado')};
 $('#bPdf').onclick=openPrint;
+/* ════════ Compartir: visor de solo lectura en un único archivo HTML ════════ */
+let shareMode='man';
+function renderShare(){
+  const nm=(S.manis||[]).length,hasM=nm>0;if(!hasM&&shareMode==='man')shareMode='anim';
+  $('#shFile').textContent=slug()+'-visor.html';
+  $('#shInc').innerHTML=`Incluye: el plano${hasM?`, ${nm===1?'la maniobra «'+esc(M().title)+'»':nm+' maniobras'} (válvulas A/C, candados, ciegos y pasos)`:''} y la animación del flujo.`;
+  $('#shMode').innerHTML=[['draw','Plano'],['man','Maniobra'],['anim','Animación']].filter(o=>o[0]!=='man'||hasM).map(([v,l])=>`<button data-v="${v}" class="${shareMode===v?'on':''}">${l}</button>`).join('');
+}
+function viewerHTML(){
+  const data=JSON.stringify({doc:S,mode:shareMode,date:new Date().toLocaleDateString('es-ES'),theme}).replace(/</g,'\\u003c');
+  return APP_SRC.replace('<body>','<body>\n<script>window.BYPASS_VIEWER='+data+';<\/script>');
+}
+$('#bShare').onclick=()=>{renderShare();$('#mShare').hidden=false};
+$('#shMode').addEventListener('click',e=>{const b=e.target.closest('[data-v]');if(b){shareMode=b.dataset.v;renderShare()}});
+$('#shGo').onclick=()=>{download(new Blob([viewerHTML()],{type:'text/html'}),slug()+'-visor.html');$('#mShare').hidden=true;toast('Visor descargado: adjúntalo al correo')};
 $('#bPng').onclick=()=>{
   const {w,h,s}=buildSVG(P), img=new Image(), sc=2;
   img.onload=()=>{const c=document.createElement('canvas');c.width=w*sc;c.height=h*sc;const x=c.getContext('2d');x.drawImage(img,0,0,c.width,c.height);c.toBlob(bl=>{download(bl,slug()+'.png');toast('Imagen exportada')},'image/png')};
@@ -2072,11 +2114,13 @@ function sample(){
 
 /* ════════ Arranque ════════ */
 (function init(){
-  let s=null; try{s=localStorage.getItem(KEY)}catch(e){}
-  try{S=s?JSON.parse(s):sample()}catch(e){S=sample()}
+  let s=null; if(!VIEWER)try{s=localStorage.getItem(KEY)}catch(e){}
+  if(VIEWER){S=VIEWER.doc;document.body.classList.add('viewer');$('#docName').readOnly=true;$('[data-mode="draw"]').lastChild.textContent='Plano';$('#saved').innerHTML='<b style="color:#38BDF8">●</b> solo lectura · '+esc(VIEWER.date||'');}
+  else try{S=s?JSON.parse(s):sample()}catch(e){S=sample()}
   if(!S.fluids)S.fluids=clone(DEFAULT_FLUIDS);
   let t='noche'; try{t=localStorage.getItem(TKEY)||'noche'}catch(e){}
-  $('#docName').value=S.name; buildPalette(); commit(); setTheme(THEMES[t]?t:'noche'); setMode('draw');
+  if(VIEWER&&THEMES[VIEWER.theme])t=VIEWER.theme;
+  $('#docName').value=S.name; buildPalette(); commit(); setTheme(THEMES[t]?t:'noche'); setMode(VIEWER?(VIEWER.mode==='man'&&!M()?'anim':VIEWER.mode||'draw'):'draw');
   requestAnimationFrame(fit);
   window.addEventListener('resize',()=>{applyView();renderOver()});
 })();
