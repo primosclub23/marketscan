@@ -32,6 +32,8 @@ El editor: HTML, CSS y JS sin dependencias ni paso de compilación. Las fuentes 
   - La línea se termina con doble clic, `Enter` o `Esc`, o automáticamente al tocar otra línea o un equipo.
   - Una válvula colocada sobre un tramo vertical gira sola y toma el color del fluido de esa línea.
   - Con una línea seleccionada: los cuadrados mueven un vértice y los rombos mueven un tramo entero. Si el tramo es el primero o el último, se crea un codo nuevo.
+  - Borrar un codo: clic en su cuadrado (queda marcado, `selV`) y Supr, doble clic sobre él, o «Borrar este codo» en el panel (`delVertex()`). Si al quitarlo quedaría un tramo en diagonal, se quita el tramo corto del extremo. «Enderezar» (`straighten()`) quita los tramitos de menos de 35 en los extremos.
+  - En el lienzo no se selecciona texto del navegador (`user-select:none` y `preventDefault` al pulsar con el ratón).
 - **Saltos en los cruces**: `hopPath()` hace que los tramos horizontales salten en arco sobre los verticales de otras líneas. Los cruces se calculan en `renderItems` (`VSEGS`).
 - **Válvula abierta / cerrada**: `it.closed` rellena el cuerpo de la válvula (convenio de válvula cerrada). Solo en manual, automática, motorizada y tres vías. Tecla `C` o el inspector.
 - **Modo maniobra** (botón «Maniobra» de la barra superior):
